@@ -85,7 +85,7 @@ print(emp_1.email)
 print(emp_1.fullname)
 
 """
-so now the inbuilt funciton del (which comepletely removes whetever is after 'del'
+so now the inbuilt funciton del (which usually comepletely removes whatever is after 'del'
 ie it is no longer defined) will call the deleter version of the fullname method.
 but the code we have written does something a little softer than that and just sets the
 first and last names to none.   
