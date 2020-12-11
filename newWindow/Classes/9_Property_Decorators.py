@@ -42,12 +42,12 @@ class Employee:
     """
     now that we are treating the fullname method as attribute we can also write code that lets
     you set it like an attribute. but with additional functionality when you set it. 
-    ie in the past to change (set) an attribute of a class you would write
+    ie in the past, to change (set) an attribute of a class you would write
     emp_1.first = 'jim'
     and 'jim'; is literally assigned to the object emp_1.first
     
-    but now even though we are treating these methods as attributes, theya re still methods
-    and can perform some additional functionalitt for us when we set them 
+    but now even though we are treating these methods as attributes, they are still methods
+    and can perform some additional functionality for us when we set them 
     
     so we use the @methodName.setter decorator to add this functionality
     """
@@ -74,15 +74,18 @@ emp_2 = Employee('joe','blogs')
 print('name before changing is', emp_1.email)
 
 """
-so now when you try to ASSIGN something to method of an instance (emp_1.fullname), python will use 
-the setter version of that method. 
+so now when you try to ASSIGN something 'emp_1.fullname' (which is essentially a method that is called on an instance, 
+somehting that you would not be allow to assign anything to otherwise),python will use the setter version of that method. 
 """
 emp_1.fullname = 'corey schafer'
 
 
-print(emp_1.first)
-print(emp_1.email)
-print(emp_1.fullname)
+print('employeees first name is now',emp_1.first)
+print('employeees first name is now',emp_1.email)
+"""
+remember fullname used to be a method you would call on an instance, emp_1.fullname()
+"""
+print('employeees full name is now',emp_1.fullname)
 
 """
 so now the inbuilt funciton del (which usually comepletely removes whatever is after 'del'
@@ -93,13 +96,13 @@ first and last names to none.
 del emp_1.fullname
 
 """
-you can see that the instance of the class still exitsis
+you can see that the instance of the class still exisis
 """
 print(emp_1)
 print(emp_1.first)
 
 """
-'del emp_1' will unassign it the class instance... your're fired!
+'del emp_1' will un assign it the class instance... your're fired!
  
  """
 
