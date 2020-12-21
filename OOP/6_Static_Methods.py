@@ -73,7 +73,7 @@ now both 'emp_2.is_workday(startDate)' and 'Employee.is_workday(startDate)' retu
 following error
 
 Traceback (most recent call last):
-  File "/Users/cafeciaojoe/PycharmProjects/pyTuts/newWindow/Classes/6_Static_Methods.py", line 75, in <module>
+  File "/Users/cafeciaojoe/PycharmProjects/pyTuts/PyQt/OOP/6_Static_Methods.py", line 75, in <module>
     emp_2.is_workday(startDate)
 NameError: name 'startDate' is not defined
 

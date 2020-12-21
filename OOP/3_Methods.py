@@ -66,7 +66,7 @@ the answer is NO! despite the animal employee having a first and last name,
 the fullname method does not exist in it's class, you get this error
 
 Traceback (most recent call last):
-  File "/Users/cafeciaojoe/PycharmProjects/pyTuts/newWindow/Classes/3_Methods.py", line 58, in <module>
+  File "/Users/cafeciaojoe/PycharmProjects/pyTuts/PyQt/OOP/3_Methods.py", line 58, in <module>
     emp_3.fullname()
 AttributeError: 'Employee_Animal' object has no attribute 'fullname'
 

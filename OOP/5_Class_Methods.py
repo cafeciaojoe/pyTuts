@@ -121,7 +121,7 @@ the answer is NO! despite the animal employee having a first and last name,
 the fullname method does not exist in it's class, you get this error
 
 Traceback (most recent call last):
-  File "/Users/cafeciaojoe/PycharmProjects/pyTuts/newWindow/Classes/5_Class_Methods.py", line 117, in <module>
+  File "/Users/cafeciaojoe/PycharmProjects/pyTuts/PyQt/OOP/5_Class_Methods.py", line 117, in <module>
     emp_4.set_raise_amt(60000)
 AttributeError: 'Employee_animal' object has no attribute 'set_raise_amt'
 
