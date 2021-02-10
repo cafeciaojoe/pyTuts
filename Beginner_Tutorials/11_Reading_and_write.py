@@ -54,6 +54,7 @@ with open('test.txt', 'r') as rf:
     with open('test_copy.txt', 'w') as wf:
         for line in rf:
             wf.write(line)
+print('rf is of type,',type(rf))
 
 """if we are copying files that are not lines of a text 
 then we need to use binary mode, add a b to the end of r and w """

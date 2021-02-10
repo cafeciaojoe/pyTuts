@@ -1,15 +1,30 @@
+class Worker:
+
+    def __init__(self,first,last):
+        self.first = first
+        self.last = last
+        self.email = first + '.' + last + '@email.com'
+
+    def wholeName(self):
+        return '{} {}'.format(self.first,self.last)
+
+worker_1 = Worker('John', 'Smith')
+
 """
 PROBLEM
 in any given instance,
 when you change the attribute 'self.first' the 'self.email' attribute does not change
-because it is created in the init method usin the first values for those attributes.
+because it is created in the init method using the first values for those attributes.
+for example if a worker changed their name to jim, the email would remain the same 
+just run these three lines and you will see the email did not change"""
 
-just run these three lines and you will see the email did not change
-print(emp_1.first)
-print(emp_1.email)
-print(emp_1.fullname())
+worker_1.first = 'jim'
 
-we could create an email mehod 'def email()' but the problem with this is that it could break
+print(worker_1.first)
+print(worker_1.email)
+print(worker_1.wholeName())
+
+"""we could create an email method 'def email()' but the problem with this is that it could break
 the code for everyone who is sing the employee class and have hundress of employee emails
 generated from the __init__ method called for each instance of Employee.
 
@@ -20,7 +35,6 @@ class Employee:
     def __init__(self,first,last):
         self.first = first
         self.last = last
-        #self.email = first + '.' + last + '@email.com'
 
     """ so the property decorator reclassifies the method as a property of the class
     that way you HAVE TO access it like a an attribute. ie you cannot use () when calling it.
@@ -29,11 +43,11 @@ class Employee:
     """
     @property
     def email(self):
-        return '{} {}@email.com'.format(self.first, self.last)
+        return '{}.{}@email.com'.format(self.first, self.last)
 
     """
     so now we are going to change the full name method to a property so we can 
-    treat it like an attribute.
+    also treat it like an attribute.
     """
     @property
     def fullname(self):
@@ -41,15 +55,17 @@ class Employee:
 
     """
     now that we are treating the fullname method as attribute we can also write code that lets
-    you set it like an attribute. but with additional functionality when you set it. 
-    ie in the past, to change (set) an attribute of a class you would write
-    emp_1.first = 'jim'
+    you set it like an attribute using whats called a setter. right now, if you try to define this
+    property above without a setter, you will get an error. 
+    so we use the @methodName.setter decorator to do this.
+    
+    in the past, to change (set) an attribute of a class you would write
+    emp_1.first = 'jim' 
     and 'jim'; is literally assigned to the object emp_1.first
     
     but now even though we are treating these methods as attributes, they are still methods
     and can perform some additional functionality for us when we set them 
-    
-    so we use the @methodName.setter decorator to add this functionality
+    NOTE - the function must be the same name as it's @property counterpart
     """
     @fullname.setter
     def fullname(self, name):

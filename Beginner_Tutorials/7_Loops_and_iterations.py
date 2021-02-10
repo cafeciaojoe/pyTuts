@@ -1,8 +1,9 @@
-nums = [1, 2, 3, 4, 5]
+nums = [1, 2, 3, 4, 555]
 
-# for num in nums:
-#     print(num)
-#     break
+for num in nums:
+    for numm in nums:
+        print(numm)
+    # break
 #
 # for num in nums:
 #     if num ==3:
