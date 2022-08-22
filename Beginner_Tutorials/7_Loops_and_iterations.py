@@ -3,6 +3,7 @@ nums = [1, 2, 3, 4, 555]
 for num in nums:
     for numm in nums:
         print(numm)
+        print('hi', num)
     # break
 #
 # for num in nums:
