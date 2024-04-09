@@ -3,7 +3,7 @@ import csv
 
 def load_accepted_positions():
     #     https://stackoverflow.com/questions/36965507/writing-a-dictionary-to-a-text-file
-    filename = 'Tim.json'
+    filename = 'Joseph_.json'
 
     with open(filename, 'r') as f:
         accepted_positions = json.loads(f.read())
@@ -34,7 +34,7 @@ for key, value in coord_dict.items():
 "length of each list is 2x78 = 156"
 "print(len(x))"
 
-with open('Tim.csv', 'w') as f:
+with open('Joseph_.csv', 'w') as f:
     writer = csv.writer(f)
     writer.writerow(axes)
 

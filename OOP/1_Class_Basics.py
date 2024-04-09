@@ -14,7 +14,7 @@ emp_2 = Employee_manual()
 
 "you can see they take up different spots in the memory"
 print(emp_1)
-print(emp_1)
+print(emp_2)
 
 """instance variable are unique to the instance of a class. when you create an instance 
 variable, it is formatted as so 'class.variableName = whatever' 
