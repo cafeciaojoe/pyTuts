@@ -11,6 +11,9 @@ IMAGE_SHAPE = (600, 800)  # (height, width)
 CANVAS_SIZE = (800, 600)  # (width, height)
 NUM_LINE_POINTS = 200
 
+COLORMAP_CHOICES = ["viridis", "reds", "blues"]
+LINE_COLOR_CHOICES = ["black", "red", "blue"]
+
 
 class MyMainWindow(QtWidgets.QMainWindow):
     def __init__(self, *args, **kwargs):
@@ -36,6 +39,21 @@ class MyMainWindow(QtWidgets.QMainWindow):
         #  set the central widget on our main window.
         self.setCentralWidget(central_widget)
 
+        self._connect_controls()
+
+    # tell our controls to connect their signals (which get sent out when you e.g. use the dropdown box)
+    # to our CanvasWrapper() methods (set_image_colormap and set_line_color)
+    def _connect_controls(self):
+        # _controls.colormap_chooser is the Qcombobox object we made in the controls class
+        # built into that class is the currentTextChanged signal, and all signals have a "connect" method
+        # we need to provide a method to this signal to be called when it gets emitted (e.g. when the value in the combo box changes)
+        # that method is self._canvas_wrapper.set_image_colormap
+        # not we don't use the brackets because we dont want to call it when we set it up.
+        self._controls.colormap_chooser.currentTextChanged.connect(self._canvas_wrapper.set_image_colormap)
+        #same goes
+        self._controls.line_color_chooser.currentTextChanged.connect(self._canvas_wrapper.set_line_color)
+
+
 
 class Controls(QtWidgets.QWidget):
     def __init__(self, parent=None):
@@ -48,13 +66,13 @@ class Controls(QtWidgets.QWidget):
         layout.addWidget(self.colormap_label)
         # adding a label for the drop down box
         self.colormap_chooser = QtWidgets.QComboBox()
-        self.colormap_chooser.addItems(["viridis", "reds", "blues"])
+        self.colormap_chooser.addItems(COLORMAP_CHOICES)
         layout.addWidget(self.colormap_chooser)
 
         self.line_color_label = QtWidgets.QLabel("Line color:")
         layout.addWidget(self.line_color_label)
         self.line_color_chooser = QtWidgets.QComboBox()
-        self.line_color_chooser.addItems(["black", "red", "blue"])
+        self.line_color_chooser.addItems(LINE_COLOR_CHOICES)
         layout.addWidget(self.line_color_chooser)
 
         layout.addStretch(1)
@@ -78,7 +96,7 @@ class CanvasWrapper:
             # the texture format is a customisation on this image on how I want it ti interact with the GPU on the back end.
             texture_format="auto",
             # apply the viridis colour map
-            cmap="viridis",
+            cmap=COLORMAP_CHOICES[0],
             # apply a parent child relationship to self.view_top (defined above) and the image itself.
             parent=self.view_top.scene,
         )
@@ -96,10 +114,23 @@ class CanvasWrapper:
             line_data,
             # apply a parent child relationship to self.view_self.view_top (defined above) and the image itself.
             parent=self.view_bot.scene,
-            color='black')
+            color=LINE_COLOR_CHOICES[0])
         self.view_bot.camera = "panzoom"
         # out the entire line in the view.
         self.view_bot.camera.set_range(x=(0, NUM_LINE_POINTS), y=(0, 1))
+
+    #this method changes the image colourmap. based on the information we get form the qt controls
+    def set_image_colormap(self, cmap_name: str):
+        print(f"Changing image colormap to {cmap_name}")
+        # remember self.image is an instance of vispy visuals module (vispy.scene.visuals)
+        # the cmap property of visuals is being set to a string
+        self.image.cmap = cmap_name
+
+    def set_line_color(self, color):
+        print(f"Changing line color to {color}")
+        # remember that self.line is an instance of the vispy visuals module (vispy.scene.visuals)
+        # not a property this time but call the set_data() method from the visuals module
+        self.line.set_data(color=color)
 
 
 def _generate_random_image_data(shape, dtype=np.float32):
