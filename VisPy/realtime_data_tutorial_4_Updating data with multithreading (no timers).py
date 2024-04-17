@@ -1,5 +1,7 @@
-#https://www.youtube.com/watch?v=k1Z-55lHNm8&list=PL2OQ8odJIDfPU67ML2k-ldvgtISoxJE8b&index=3
-##https://vispy.org/gallery/scene/realtime_data/index.html
+#https://www.youtube.com/watch?v=k1Z-55lHNm8&list=PL2OQ8odJIDfPU67ML2k-ldvgtISoxJE8b&index=4
+##https://vispy.org/gallery/scene/realtime_data/index.html (example 3b)
+
+
 import time  # noqa
 import numpy as np
 from math import sin, pi
@@ -18,6 +20,10 @@ LINE_COLOR_CHOICES = ["black", "red", "blue"]
 
 
 class MyMainWindow(QtWidgets.QMainWindow):
+
+    # a signal what wil later be used when closing the GUI
+    closing = QtCore.pyqtSignal()
+
     def __init__(self, canvas_wrapper, *args, **kwargs):
         #QMainWindow is a subclass (aka child class) so we are going to call the init method on the base class
         #https://stackoverflow.com/questions/19205916/how-to-call-base-classs-init-method-from-the-child-class
@@ -55,6 +61,12 @@ class MyMainWindow(QtWidgets.QMainWindow):
         #same goes
         self._controls.line_color_chooser.currentTextChanged.connect(self._canvas_wrapper.set_line_color)
 
+    # this needed because there no signal built into Qt that tell sus the window is closing.
+    # this causes the .closing signal to emit when the GUI is closed.
+    def closeEvent(self, event):
+        print("Closing main Window!")
+        self.closing.emit()
+        return super().closeEvent(event)
 
 
 class Controls(QtWidgets.QWidget):
@@ -163,35 +175,48 @@ class DataSource(QtCore.QObject):
     #in this case a dictionary of new data
     new_data = QtCore.pyqtSignal(dict)
 
+    # the finished signal, later connected t "data_thread.quit, QtCore.Qt.DirectConnection" and "data_source.deleteLater"
+    finished = QtCore.pyqtSignal()
+
     # limits the number of iteratiosn the data will be generated, the parent thing is just something that Pyqt needs to know...?
     def __init__(self, num_iterations=1000, parent=None):
         super().__init__(parent)
-        self._count = 0
+
+        # this is will be used  when the GUI is closed, to break the loop that generates the data
+        self._should_end = False
         self._num_iters = num_iterations
+
         # this is the last bunch of data to be sent.
         self._image_data = _generate_random_image_data(IMAGE_SHAPE)
         self._line_data = _generate_random_line_positions(NUM_LINE_POINTS)
 
     # this function kind of iterates the whole pyQt GUI update cycle.
     # passing in event timer,
-    def run_data_creation(self, timer_event):
-        if self._count >= self._num_iters:
-            return
+    def run_data_creation(self):
+        print("Run data creation is starting")
+        for count in range(self._num_iters):
+            if self._should_end:
+                print("Data source saw tahat it should stop")
+                break
+            #time.sleep(.00005)
 
-        # Uncomment to mimic a long-running computation
-        # time.sleep(3)
-        image_data = self._update_image_data(self._count)
-        line_data = self._update_line_data(self._count)
-        self._count += 1
+            # Uncomment to mimic a long-running computation
+            # time.sleep(3)
+            image_data = self._update_image_data(count)
+            line_data = self._update_line_data(count)
 
-        # Create the dictionary to emit. with our new data
-        data_dict = {
-            "image": image_data,
-            "line": line_data,
-        }
+            # Create the dictionary to emit. with our new data
+            data_dict = {
+                "image": image_data,
+                "line": line_data,
+            }
 
-        # emit the signal (a dictionary in this case), call the emit method from QtCore.pyqtSignal
-        self.new_data.emit(data_dict)
+            # emit the signal (a dictionary in this case), call the emit method from QtCore.pyqtSignal
+            self.new_data.emit(data_dict)
+        print("Data source is finished")
+
+        # use the finished signal (created at the top of the class) to say that the thread is done
+        self.finished.emit()
 
     # _update_image_data and _update_line_data emulate new data coming in from an external source
     def _update_image_data(self, count):
@@ -209,6 +234,11 @@ class DataSource(QtCore.QObject):
         self._line_data[-1, 1] = abs(sin((count / self._num_iters) * 16 * pi))
         return self._line_data
 
+    # this function is called when the .closing signal is called
+    def stop_data(self):
+        print("Data source is quitting...")
+        self._should_end = True
+
 # if __name__ makes sure that this code can only be run as a script.
 # standard python practice. esp if this is part of a big package and you dont want
 # it to imported into something else.
@@ -218,7 +248,7 @@ if __name__ == "__main__":
     # manually create the qt5 application.
     app.create()
 
-    # create an instance of the data_source class and connect it to the canvas wrapper
+    # create an instance of the data_source class
     data_source = DataSource()
     # it is celaner to create the canvas wrapper instance here and pass it into MyMainWindow
     # it prevents problems with property attribute access
@@ -227,26 +257,46 @@ if __name__ == "__main__":
     #showing the secenecanvas (it has been moved to its own class called MyMainWindow
     win = MyMainWindow(canvas_wrapper)
 
+    #thread handler for the data creation.
+    # parent=win means if a parent is destroyed (ie a window is closed, the children, the data_thread needs to be destroyed also.
+    data_thread = QtCore.QThread(parent=win)
+
+    # create an instance of the data_source class
+    data_source = DataSource()
+
+    # data_source is a Qobject (because QtCore.QObject was subclassed when DataSource was created)
+    # so .moveToThread is a method you can call on all QObjects
+    # this moves data_source (an instance of DataSource) to the data_thread
+    data_source.moveToThread(data_thread)
+
     # access new_data by attribute access,
     # connecting the new_data signal (from the DataSource class)
     # with the update_data slot (from the canvas wrapper class, but it will have been passed into MyMainWindow by the time it is called)
     data_source.new_data.connect(canvas_wrapper.update_data)
 
-    # drive or pace this connection we are going to use the vispy timer.
-    # timers drive lots of different guis not just pyqt.
-    # vispy provides a wrapper around a timer so you can use different GUI packeges.
-    # the first argument controls how rast the timer runs, ie how often Qt processes new data, GUI inputs, GUI updates etc
-    # (auto is max)
-    timer = Timer("auto", connect=data_source.run_data_creation, start=True)
+    # .started is a signal that comes with the QtCore.QThread object,
+    # this says the thread has started and is ready to compute!
+    # we are going to connect this signal to the run_data_creation method
+    # which will start data generation when the thread is started
+    data_thread.started.connect(data_source.run_data_creation)
 
-    # stop the timer when the window is closed and destroyed
-    # not always needed, but needed for vispy gallery creation
-    win.destroyed.connect(timer.stop)
+    # connect a new "finish" signal on our data_source, to our data thread
+    # if the data source finishes before the window is closed, kill the thread
+    # the .quit signal when combined with QtCore.Qt.DirectConnection can go into another thread and break a for or while loop
+    data_source.finished.connect(data_thread.quit, QtCore.Qt.DirectConnection)
 
+    # if the window is closed, tell the data source to stop
+    win.closing.connect(data_source.stop_data, QtCore.Qt.DirectConnection)
+
+    # when the thread has ended, delete the data source from memory
+    data_thread.finished.connect(data_source.deleteLater)
+
+    # .show is actually a method from SceneCanvas but that was created in CanvasWrapper, which was passed into MyMainWindow, which was assigned to win
     win.show()
 
-
-
+    # this will start a thread, and once it has set up, it emits a signal (remember we used the .started method)
+    # this signal will start the run_data_creation
+    data_thread.start()
 
     ##assign an instance of the canvas wrapper class to "canvas_wrapper", but just no qt5
     #canvas_wrapper = CanvasWrapper()
@@ -255,3 +305,8 @@ if __name__ == "__main__":
 
     # start the qt5 event loop and handle all the events
     app.run()
+
+    # when you close your GUI window the script will return to here,
+    # this .wait() method is from QtCore.QThread
+    print("Waiting for data source to close gracefully...")
+    data_thread.wait(5000)

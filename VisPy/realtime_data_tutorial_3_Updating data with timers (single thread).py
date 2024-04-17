@@ -1,5 +1,5 @@
 #https://www.youtube.com/watch?v=k1Z-55lHNm8&list=PL2OQ8odJIDfPU67ML2k-ldvgtISoxJE8b&index=3
-##https://vispy.org/gallery/scene/realtime_data/index.html
+##https://vispy.org/gallery/scene/realtime_data/index.html (exmple 3a)
 import time  # noqa
 import numpy as np
 from math import sin, pi
@@ -218,7 +218,7 @@ if __name__ == "__main__":
     # manually create the qt5 application.
     app.create()
 
-    # create an instance of the data_source class and connect it to the canvas wrapper
+    # create an instance of the data_source class
     data_source = DataSource()
     # it is celaner to create the canvas wrapper instance here and pass it into MyMainWindow
     # it prevents problems with property attribute access
@@ -241,7 +241,7 @@ if __name__ == "__main__":
 
     # stop the timer when the window is closed and destroyed
     # not always needed, but needed for vispy gallery creation
-    win.destroyed.connect(timer.stop)
+    win.destroyed.connect(Timer.stop)
 
     win.show()
 
