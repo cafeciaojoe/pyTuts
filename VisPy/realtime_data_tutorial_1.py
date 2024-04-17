@@ -1,4 +1,5 @@
 #https://www.youtube.com/watch?v=k1Z-55lHNm8&list=PL2OQ8odJIDfPU67ML2k-ldvgtISoxJE8b&index=1
+#https://vispy.org/gallery/scene/realtime_data/index.html
 
 import numpy as np
 #import QtWidgets module

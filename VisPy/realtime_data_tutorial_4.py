@@ -1,12 +1,13 @@
-#https://www.youtube.com/watch?v=k1Z-55lHNm8&list=PL2OQ8odJIDfPU67ML2k-ldvgtISoxJE8b&index=2
+#https://www.youtube.com/watch?v=k1Z-55lHNm8&list=PL2OQ8odJIDfPU67ML2k-ldvgtISoxJE8b&index=3
 ##https://vispy.org/gallery/scene/realtime_data/index.html
-
+import time  # noqa
 import numpy as np
-#import QtWidgets module
-from PyQt5 import QtWidgets
+from math import sin, pi
+
+from PyQt5 import QtWidgets, QtCore
 
 from vispy.scene import SceneCanvas, visuals
-from vispy.app import use_app
+from vispy.app import use_app, Timer
 
 IMAGE_SHAPE = (600, 800)  # (height, width)
 CANVAS_SIZE = (800, 600)  # (width, height)
@@ -17,7 +18,7 @@ LINE_COLOR_CHOICES = ["black", "red", "blue"]
 
 
 class MyMainWindow(QtWidgets.QMainWindow):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, canvas_wrapper, *args, **kwargs):
         #QMainWindow is a subclass (aka child class) so we are going to call the init method on the base class
         #https://stackoverflow.com/questions/19205916/how-to-call-base-classs-init-method-from-the-child-class
         super().__init__(*args, **kwargs)
@@ -30,8 +31,8 @@ class MyMainWindow(QtWidgets.QMainWindow):
         self._controls = Controls()
         main_layout.addWidget(self._controls)
 
-        # an instance of the canvasWrapper() will go on the right, as it was added 2nd
-        self._canvas_wrapper = CanvasWrapper()
+        # an instance of the canvasWrapper(), passed in from __main__ will go on the right, as it was added 2nd
+        self._canvas_wrapper = canvas_wrapper
         # when we want to incorporate the vispy canvas into a larger application we use this scenecanvas native property
         main_layout.addWidget(self._canvas_wrapper.canvas.native)
 
@@ -133,6 +134,13 @@ class CanvasWrapper:
         # not a property this time but call the set_data() method from the visuals module
         self.line.set_data(color=color)
 
+    # this is the 'slot' or the method that the new_data signal (defined at the top of the DataSource class)
+    # but they are not connected yet. that is done in __main__
+    def update_data(self, new_data_dict):
+        print("Updating data...")
+        # using the .set_data method from the .visuals class, which was assigned to self.image and self.line above.
+        self.image.set_data(new_data_dict["image"])
+        self.line.set_data(new_data_dict["line"])
 
 def _generate_random_image_data(shape, dtype=np.float32):
     rng = np.random.default_rng()
@@ -147,6 +155,60 @@ def _generate_random_line_positions(num_points, dtype=np.float32):
     pos[:, 1] = rng.random((num_points,), dtype=dtype)
     return pos
 
+# generates the live data for the vispy scene
+# any object that emits a signal needs to be subclass of QObject, hence why QtCore.QObject is being subclassed.
+class DataSource(QtCore.QObject):
+    """Object representing a complex data producer."""
+    # here is a new signal, what is passed to the QtCore.pyqtSignal class is the types of things that will be emitted from that signal .
+    #in this case a dictionary of new data
+    new_data = QtCore.pyqtSignal(dict)
+
+    # limits the number of iteratiosn the data will be generated, the parent thing is just something that Pyqt needs to know...?
+    def __init__(self, num_iterations=1000, parent=None):
+        super().__init__(parent)
+        self._count = 0
+        self._num_iters = num_iterations
+        # this is the last bunch of data to be sent.
+        self._image_data = _generate_random_image_data(IMAGE_SHAPE)
+        self._line_data = _generate_random_line_positions(NUM_LINE_POINTS)
+
+    # this function kind of iterates the whole pyQt GUI update cycle.
+    # passing in event timer,
+    def run_data_creation(self, timer_event):
+        if self._count >= self._num_iters:
+            return
+
+        # Uncomment to mimic a long-running computation
+        # time.sleep(3)
+        image_data = self._update_image_data(self._count)
+        line_data = self._update_line_data(self._count)
+        self._count += 1
+
+        # Create the dictionary to emit. with our new data
+        data_dict = {
+            "image": image_data,
+            "line": line_data,
+        }
+
+        # emit the signal (a dictionary in this case), call the emit method from QtCore.pyqtSignal
+        self.new_data.emit(data_dict)
+
+    # _update_image_data and _update_line_data emulate new data coming in from an external source
+    def _update_image_data(self, count):
+        img_count = count % IMAGE_SHAPE[1]
+        self._image_data[:, img_count] = img_count / IMAGE_SHAPE[1]
+        rdata_shape = (IMAGE_SHAPE[0], IMAGE_SHAPE[1] - img_count - 1)
+        self._image_data[:, img_count + 1:] = _generate_random_image_data(rdata_shape)
+        #using the .copy() method from numpy to send the data, any other methods that uses this signal, cannot corrupt the results.
+        # important because in multi thread scripts you dont want things to become mixedup and out of sync.
+        return self._image_data.copy()
+
+    def _update_line_data(self, count):
+        # the numpy roll method to shift over everything in the array
+        self._line_data[:, 1] = np.roll(self._line_data[:, 1], -1)
+        self._line_data[-1, 1] = abs(sin((count / self._num_iters) * 16 * pi))
+        return self._line_data
+
 # if __name__ makes sure that this code can only be run as a script.
 # standard python practice. esp if this is part of a big package and you dont want
 # it to imported into something else.
@@ -156,14 +218,40 @@ if __name__ == "__main__":
     # manually create the qt5 application.
     app.create()
 
+    # create an instance of the data_source class and connect it to the canvas wrapper
+    data_source = DataSource()
+    # it is celaner to create the canvas wrapper instance here and pass it into MyMainWindow
+    # it prevents problems with property attribute access
+    canvas_wrapper = CanvasWrapper()
+
     #showing the secenecanvas (it has been moved to its own class called MyMainWindow
-    win = MyMainWindow()
+    win = MyMainWindow(canvas_wrapper)
+
+    # access new_data by attribute access,
+    # connecting the new_data signal (from the DataSource class)
+    # with the update_data slot (from the canvas wrapper class, but it will have been passed into MyMainWindow by the time it is called)
+    data_source.new_data.connect(canvas_wrapper.update_data)
+
+    # drive or pace this connection we are going to use the vispy timer.
+    # timers drive lots of different guis not just pyqt.
+    # vispy provides a wrapper around a timer so you can use different GUI packeges.
+    # the first argument controls how rast the timer runs, ie how often Qt processes new data, GUI inputs, GUI updates etc
+    # (auto is max)
+    timer = Timer("auto", connect=data_source.run_data_creation, start=True)
+
+    # stop the timer when the window is closed and destroyed
+    # not always needed, but needed for vispy gallery creation
+    win.destroyed.connect(timer.stop)
+
     win.show()
 
-    #assign an instance of the canvas wrapper class to "canvas_wrapper", but just no qt5
-    canvas_wrapper = CanvasWrapper()
-    #self.canvas which is assigned to scene canvas, has the show() method inside which you are calling below
-    canvas_wrapper.canvas.show()
+
+
+
+    ##assign an instance of the canvas wrapper class to "canvas_wrapper", but just no qt5
+    #canvas_wrapper = CanvasWrapper()
+    ##self.canvas which is assigned to scene canvas, has the show() method inside which you are calling below
+    #canvas_wrapper.canvas.show()
 
     # start the qt5 event loop and handle all the events
     app.run()
