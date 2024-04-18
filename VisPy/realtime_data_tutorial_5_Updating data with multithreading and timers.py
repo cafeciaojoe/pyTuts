@@ -1,5 +1,5 @@
-#https://www.youtube.com/watch?v=k1Z-55lHNm8&list=PL2OQ8odJIDfPU67ML2k-ldvgtISoxJE8b&index=4
-##https://vispy.org/gallery/scene/realtime_data/index.html (example 3b)
+# https://www.youtube.com/watch?v=k1Z-55lHNm8&list=PL2OQ8odJIDfPU67ML2k-ldvgtISoxJE8b&index=5
+# https://vispy.org/gallery/scene/realtime_data/ex03c_data_sources_threaded_events.html
 
 
 import time  # noqa
@@ -184,39 +184,39 @@ class DataSource(QtCore.QObject):
 
         # this is will be used  when the GUI is closed, to break the loop that generates the data
         self._should_end = False
+        self._count = 0
         self._num_iters = num_iterations
 
         # this is the last bunch of data to be sent.
         self._image_data = _generate_random_image_data(IMAGE_SHAPE)
         self._line_data = _generate_random_line_positions(NUM_LINE_POINTS)
 
-    # this function now runs a for loop not timers,
-    # pyqt has to break in with QtCore.Qt.DirectConnection to stop it.
+    # this function kind of iterates the whole pyQt GUI update cycle.
+    # passing in event timer,
     def run_data_creation(self):
-        print("Run data creation is starting")
-        for count in range(self._num_iters):
-            if self._should_end:
-                print("Data source saw that it should stop")
-                break
-            #time.sleep(.00005)
+        if self._should_end or self._count >= self._num_iters:
+            print("Data source is finishing")
+            self.finished.emit()
+            return
 
-            # Uncomment to mimic a long-running computation
-            # time.sleep(3)
-            image_data = self._update_image_data(count)
-            line_data = self._update_line_data(count)
+        # Uncomment to mimic a long-running computation
+        time.sleep(1)
+        image_data = self._update_image_data(self._count)
+        line_data = self._update_line_data(self._count)
+        self._count += 1
 
-            # Create the dictionary to emit. with our new data
-            data_dict = {
-                "image": image_data,
-                "line": line_data,
-            }
+        # Create the dictionary to emit. with our new data
+        data_dict = {
+            "image": image_data,
+            "line": line_data,
+        }
 
-            # emit the signal (a dictionary in this case), call the emit method from QtCore.pyqtSignal
-            self.new_data.emit(data_dict)
-        print("Data source is finished")
+        # emit the signal (a dictionary in this case), call the emit method from QtCore.pyqtSignal
+        self.new_data.emit(data_dict)
 
-        # use the finished signal (created at the top of the class) to say that the thread is done
-        self.finished.emit()
+        # this method means, "with no delay (0), add run_data_collection to the background thread event loop"
+        # A special method ,
+        QtCore.QTimer.singleShot(0, self.run_data_creation)
 
     # _update_image_data and _update_line_data emulate new data coming in from an external source
     def _update_image_data(self, count):
@@ -281,12 +281,12 @@ if __name__ == "__main__":
     data_thread.started.connect(data_source.run_data_creation)
 
     # connect a new "finish" signal on our data_source, to our data thread
-    # if the data source finishes before the window is closed, kill the thread
-    # the .quit signal when combined with QtCore.Qt.DirectConnection can go into another thread and break a for or while loop
+    # QtCore.Qt.DirectConnection still needs to be kept else I get the following error.
+    # WARNING: QThread: Destroyed while thread is still running
     data_source.finished.connect(data_thread.quit, QtCore.Qt.DirectConnection)
 
     # if the window is closed, tell the data source to stop
-    win.closing.connect(data_source.stop_data, QtCore.Qt.DirectConnection)
+    win.closing.connect(data_source.stop_data)
 
     # when the thread has ended, delete the data source from memory
     data_thread.finished.connect(data_source.deleteLater)
