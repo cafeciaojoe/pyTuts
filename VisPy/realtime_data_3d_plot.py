@@ -9,7 +9,7 @@ from vispy.app import use_app
 
 IMAGE_SHAPE = (600, 800)  # (height, width)
 CANVAS_SIZE = (800, 600)  # (width, height)
-NUM_LINE_POINTS = 200
+NUM_LINE_POINTS = 10
 
 COLORMAP_CHOICES = ["viridis", "reds", "blues"]
 LINE_COLOR_CHOICES = ["black", "red", "blue"]
@@ -53,7 +53,11 @@ class CanvasWrapper:
 
         self.view_bot = self.grid.add_view(1, 0, bgcolor='#c0c0c0')
         line_data = _generate_random_line_positions(NUM_LINE_POINTS)
-        self.line = visuals.Line(line_data, parent=self.view_bot.scene, color=LINE_COLOR_CHOICES[0])
+        self.line = visuals.Markers(
+            pos=line_data,
+            parent=self.view_bot.scene,
+            face_color=LINE_COLOR_CHOICES[0])
+        #self.line = visuals.Line(line_data, parent=self.view_bot.scene, color=LINE_COLOR_CHOICES[0])
         #self.view_bot.camera = "turntable"
         self.view_bot.camera = TurntableCamera(
             distance=10.0)
@@ -130,7 +134,6 @@ def _generate_random_image_data(shape, dtype=np.float32):
     data = rng.random(shape, dtype=dtype)
     return data
 
-
 def _generate_random_line_positions(num_points, dtype=np.float32):
     rng = np.random.default_rng()
     pos = np.empty((num_points, 3), dtype=np.float32)
@@ -188,7 +191,7 @@ class DataSource(QtCore.QObject):
             self.finished.emit()
             return
 
-        time.sleep(.2)
+        time.sleep(.1)
         image_data = self._update_image_data(self._count)
         line_data = self._update_line_data(self._count)
         self._count += 1
@@ -208,6 +211,7 @@ class DataSource(QtCore.QObject):
         return self._image_data.copy()
 
     def _update_line_data(self, count):
+        # [:, 1] means slice the 2nd column out of self._line_data
         self._line_data[:, 1] = np.roll(self._line_data[:, 1], -1)
         self._line_data[-1, 1] = abs(sin((count / self._num_iters) * 16 * pi))
         return self._line_data
