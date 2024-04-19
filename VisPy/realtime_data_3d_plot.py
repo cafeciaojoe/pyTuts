@@ -9,10 +9,10 @@ from vispy.app import use_app
 
 IMAGE_SHAPE = (600, 800)  # (height, width)
 CANVAS_SIZE = (800, 600)  # (width, height)
-NUM_LINE_POINTS = 10
+
 
 COLORMAP_CHOICES = ["viridis", "reds", "blues"]
-LINE_COLOR_CHOICES = ["black", "red", "blue"]
+MARKER_COLOR_CHOICES = ["black", "red", "blue"]
 
 
 class Controls(QtWidgets.QWidget):
@@ -25,11 +25,11 @@ class Controls(QtWidgets.QWidget):
         self.colormap_chooser.addItems(COLORMAP_CHOICES)
         layout.addWidget(self.colormap_chooser)
 
-        self.line_color_label = QtWidgets.QLabel("Line color:")
-        layout.addWidget(self.line_color_label)
-        self.line_color_chooser = QtWidgets.QComboBox()
-        self.line_color_chooser.addItems(LINE_COLOR_CHOICES)
-        layout.addWidget(self.line_color_chooser)
+        self.marker_color_label = QtWidgets.QLabel("Marker color:")
+        layout.addWidget(self.marker_color_label)
+        self.marker_color_chooser = QtWidgets.QComboBox()
+        self.marker_color_chooser.addItems(MARKER_COLOR_CHOICES)
+        layout.addWidget(self.marker_color_chooser)
 
         layout.addStretch(1)
         self.setLayout(layout)
@@ -52,13 +52,11 @@ class CanvasWrapper:
         self.view_top.camera.set_range(x=(0, IMAGE_SHAPE[1]), y=(0, IMAGE_SHAPE[0]), margin=0)
 
         self.view_bot = self.grid.add_view(1, 0, bgcolor='#c0c0c0')
-        line_data = _generate_random_line_positions(NUM_LINE_POINTS)
-        self.line = visuals.Markers(
-            pos=line_data,
+        marker_data = _generate_random_marker_positions()
+        self.marker = visuals.Markers(
+            pos=marker_data,
             parent=self.view_bot.scene,
-            face_color=LINE_COLOR_CHOICES[0])
-        #self.line = visuals.Line(line_data, parent=self.view_bot.scene, color=LINE_COLOR_CHOICES[0])
-        #self.view_bot.camera = "turntable"
+            face_color=MARKER_COLOR_CHOICES[0])
         self.view_bot.camera = TurntableCamera(
             distance=10.0)
         self.view_bot.camera.set_range(x=(0, 0), y=(0, 0), z =(0, 0))
@@ -119,14 +117,14 @@ class CanvasWrapper:
         print(f"Changing image colormap to {cmap_name}")
         self.image.cmap = cmap_name
 
-    def set_line_color(self, color):
-        print(f"Changing line color to {color}")
-        self.line.set_data(color=color)
+    def set_marker_color(self, color):
+        print(f"Changing marker color to {color}")
+        self.marker.set_data(color=color)
 
     def update_data(self, new_data_dict):
         print("Updating data...")
         self.image.set_data(new_data_dict["image"])
-        self.line.set_data(new_data_dict["line"])
+        self.marker.set_data(new_data_dict["marker"])
 
 
 def _generate_random_image_data(shape, dtype=np.float32):
@@ -134,12 +132,12 @@ def _generate_random_image_data(shape, dtype=np.float32):
     data = rng.random(shape, dtype=dtype)
     return data
 
-def _generate_random_line_positions(num_points, dtype=np.float32):
+def _generate_random_marker_positions(dtype=np.float32):
     rng = np.random.default_rng()
-    pos = np.empty((num_points, 3), dtype=np.float32)
-    pos[:, 0] = np.arange(num_points)
-    pos[:, 1] = rng.random((num_points,), dtype=dtype)
-    pos[:, 2] = rng.random((num_points,), dtype=dtype)
+    pos = np.empty((1, 3), dtype=np.float32)
+    pos[:, 0] = rng.random(dtype=dtype)
+    pos[:, 1] = rng.random(dtype=dtype)
+    pos[:, 2] = rng.random(dtype=dtype)
     return pos
 
 
@@ -164,7 +162,7 @@ class MyMainWindow(QtWidgets.QMainWindow):
 
     def _connect_controls(self):
         self._controls.colormap_chooser.currentTextChanged.connect(self._canvas_wrapper.set_image_colormap)
-        self._controls.line_color_chooser.currentTextChanged.connect(self._canvas_wrapper.set_line_color)
+        self._controls.marker_color_chooser.currentTextChanged.connect(self._canvas_wrapper.set_marker_color)
 
     def closeEvent(self, event):
         print("Closing main window!")
@@ -183,7 +181,7 @@ class DataSource(QtCore.QObject):
         self._count = 0
         self._num_iters = num_iterations
         self._image_data = _generate_random_image_data(IMAGE_SHAPE)
-        self._line_data = _generate_random_line_positions(NUM_LINE_POINTS)
+        self._marker_data = _generate_random_marker_positions()
 
     def run_data_creation(self):
         if self._should_end or self._count >= self._num_iters:
@@ -193,12 +191,12 @@ class DataSource(QtCore.QObject):
 
         time.sleep(.1)
         image_data = self._update_image_data(self._count)
-        line_data = self._update_line_data(self._count)
+        marker_data = self._update_marker_data(self._count)
         self._count += 1
 
         data_dict = {
             "image": image_data,
-            "line": line_data,
+            "marker": marker_data,
         }
         self.new_data.emit(data_dict)
         QtCore.QTimer.singleShot(0, self.run_data_creation)
@@ -210,11 +208,11 @@ class DataSource(QtCore.QObject):
         self._image_data[:, img_count + 1:] = _generate_random_image_data(rdata_shape)
         return self._image_data.copy()
 
-    def _update_line_data(self, count):
-        # [:, 1] means slice the 2nd column out of self._line_data
-        self._line_data[:, 1] = np.roll(self._line_data[:, 1], -1)
-        self._line_data[-1, 1] = abs(sin((count / self._num_iters) * 16 * pi))
-        return self._line_data
+    def _update_marker_data(self, count):
+        # [:, 1] means slice the 2nd column out of self._marker_data
+        self._marker_data[:, 1] = np.roll(self._marker_data[:, 1], -1)
+        self._marker_data[-1, 1] = abs(sin((count / self._num_iters) * 16 * pi))
+        return self._marker_data
 
     def stop_data(self):
         print("Data source is quitting...")
