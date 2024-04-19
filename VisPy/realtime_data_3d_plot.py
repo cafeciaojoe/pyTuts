@@ -135,6 +135,7 @@ def _generate_random_image_data(shape, dtype=np.float32):
 def _generate_random_marker_positions(dtype=np.float32):
     rng = np.random.default_rng()
     pos = np.empty((1, 3), dtype=np.float32)
+    # these random number assignments are not needed, it can start as an empty array.
     pos[:, 0] = rng.random(dtype=dtype)
     pos[:, 1] = rng.random(dtype=dtype)
     pos[:, 2] = rng.random(dtype=dtype)
@@ -210,8 +211,12 @@ class DataSource(QtCore.QObject):
 
     def _update_marker_data(self, count):
         # [:, 1] means slice the 2nd column out of self._marker_data
-        self._marker_data[:, 1] = np.roll(self._marker_data[:, 1], -1)
-        self._marker_data[-1, 1] = abs(sin((count / self._num_iters) * 16 * pi))
+        #self._marker_data[:, 1] = np.roll(self._marker_data[:, 1], -1)
+        #self._marker_data[-1, 1] = abs(sin((count / self._num_iters) * 16 * pi))
+        rng = np.random.default_rng()
+        self._marker_data[0,0] = rng.random(dtype=np.float32)
+        self._marker_data[0,1] = rng.random(dtype=np.float32)
+        self._marker_data[0,2] = rng.random(dtype=np.float32)
         return self._marker_data
 
     def stop_data(self):

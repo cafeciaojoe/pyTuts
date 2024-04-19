@@ -10,3 +10,5 @@ def _generate_random_line_positions(dtype=np.float32):
 
 while True:
     _generate_random_line_positions(dtype=np.float32)
+
+    "rng.random(dtype=dtype)"
