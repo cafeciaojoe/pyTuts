@@ -1,3 +1,5 @@
+import time
+
 import numpy as np
 
 import pyqtgraph as pg
@@ -15,25 +17,23 @@ g = gl.GLGridItem()
 w.addItem(g)
 
 pos = [0,0,0]
-size = 5
+size = 20
 color = (0.0, 1.0, 0.0, 0.5)
 
-print(pos)
-sp1 = gl.GLScatterPlotItem(pos=pos, size=size, color = color, pxMode=False)
 
+sp1 = gl.GLScatterPlotItem(pos=pos, size=size, color = color, pxMode=True)
 w.addItem(sp1)
 
-def rand():
-    x_data = 10*np.random.random(n)
-    y_data = 10*np.random.random(n)
-    z_data = 10*np.random.random(n)
-    return x_data, y_data, z_data
+axisitem = gl.GLAxisItem()
+w.addItem(axisitem)
 
 def updateData():
-    xd =10*np.random.random()
-    yd =10*np.random.random()
-    zd =10*np.random.random()
-    sp1.setData(pos=[xd, yd, zd])
+    xd =1*np.random.random()
+    yd =1*np.random.random()
+    zd =1*np.random.random()
+    pos=[xd, yd, zd]
+    print(pos)
+    sp1.setData(pos=pos)
 
 ## Start a timer to rapidly update the plot in spw
 t = QtCore.QTimer()
