@@ -4,7 +4,8 @@ from math import sin, pi
 import numpy as np
 from PyQt5 import QtWidgets, QtCore
 
-from vispy.scene import SceneCanvas, visuals, TurntableCamera
+import vispy
+from vispy.scene import SceneCanvas, visuals
 from vispy.app import use_app
 
 IMAGE_SHAPE = (600, 800)  # (height, width)
@@ -57,9 +58,8 @@ class CanvasWrapper:
             pos=marker_data,
             parent=self.view_bot.scene,
             face_color=MARKER_COLOR_CHOICES[0])
-        self.view_bot.camera = TurntableCamera(
-            distance=10.0)
-        self.view_bot.camera.set_range(x=(0, 0), y=(0, 0), z =(0, 0))
+        self.view_bot.camera = vispy.scene.TurntableCamera(distance=10.0, center=(0.0, 0.0, 0.0))
+        #self.view_bot.camera.set_range(x=(0, 0), y=(0, 0), z =(10, 10))
 
         plane_size = 10
         visuals.Plane(
@@ -117,9 +117,10 @@ class CanvasWrapper:
         print(f"Changing image colormap to {cmap_name}")
         self.image.cmap = cmap_name
 
-    def set_marker_color(self, color):
+    def set_marker_color(self, color: str):
         print(f"Changing marker color to {color}")
-        self.marker.set_data(color=color)
+        self.marker.set_data(face_color=color)
+        print(type(self.marker.set_data))
 
     def update_data(self, new_data_dict):
         print("Updating data...")
@@ -136,9 +137,6 @@ def _generate_random_marker_positions(dtype=np.float32):
     rng = np.random.default_rng()
     pos = np.empty((1, 3), dtype=np.float32)
     # these random number assignments are not needed, it can start as an empty array.
-    pos[:, 0] = rng.random(dtype=dtype)
-    pos[:, 1] = rng.random(dtype=dtype)
-    pos[:, 2] = rng.random(dtype=dtype)
     return pos
 
 
@@ -190,7 +188,7 @@ class DataSource(QtCore.QObject):
             self.finished.emit()
             return
 
-        time.sleep(.1)
+        time.sleep(1)
         image_data = self._update_image_data(self._count)
         marker_data = self._update_marker_data(self._count)
         self._count += 1
@@ -213,10 +211,10 @@ class DataSource(QtCore.QObject):
         # [:, 1] means slice the 2nd column out of self._marker_data
         #self._marker_data[:, 1] = np.roll(self._marker_data[:, 1], -1)
         #self._marker_data[-1, 1] = abs(sin((count / self._num_iters) * 16 * pi))
-        rng = np.random.default_rng()
-        self._marker_data[0,0] = rng.random(dtype=np.float32)
-        self._marker_data[0,1] = rng.random(dtype=np.float32)
-        self._marker_data[0,2] = rng.random(dtype=np.float32)
+        # rng = np.random.default_rng()
+        # self._marker_data[0,0] = rng.random(dtype=np.float32)
+        # self._marker_data[0,1] = rng.random(dtype=np.float32)
+        # self._marker_data[0,2] = rng.random(dtype=np.float32)
         return self._marker_data
 
     def stop_data(self):

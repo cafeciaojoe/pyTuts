@@ -124,11 +124,17 @@ class CanvasWrapper:
         # use the function to create some random line data
         line_data = _generate_random_line_positions(NUM_LINE_POINTS)
         # create an line visual
-        self.line = visuals.Line(
-            line_data,
-            # apply a parent child relationship to self.view_self.view_top (defined above) and the image itself.
+
+        # self.line = visuals.Line(
+        #     line_data,
+        #     # apply a parent child relationship to self.view_self.view_top (defined above) and the image itself.
+        #     parent=self.view_bot.scene,
+        #     color=LINE_COLOR_CHOICES[0])
+        self.line = visuals.Markers(
+            pos=line_data,
             parent=self.view_bot.scene,
-            color=LINE_COLOR_CHOICES[0])
+            edge_width = 5,
+            face_color=LINE_COLOR_CHOICES[2])
         self.view_bot.camera = "panzoom"
         # out the entire line in the view.
         self.view_bot.camera.set_range(x=(0, NUM_LINE_POINTS), y=(0, 1))
@@ -144,7 +150,7 @@ class CanvasWrapper:
         print(f"Changing line color to {color}")
         # remember that self.line is an instance of the vispy visuals module (vispy.scene.visuals)
         # not a property this time but call the set_data() method from the visuals module
-        self.line.set_data(color=color)
+        self.line.set_data(face_color=color)
 
     # this is the 'slot' or the method that the new_data signal (defined at the top of the DataSource class)
     # but they are not connected yet. that is done in __main__
@@ -200,7 +206,7 @@ class DataSource(QtCore.QObject):
             return
 
         # Uncomment to mimic a long-running computation
-        time.sleep(1)
+        time.sleep(.1)
         image_data = self._update_image_data(self._count)
         line_data = self._update_line_data(self._count)
         self._count += 1
