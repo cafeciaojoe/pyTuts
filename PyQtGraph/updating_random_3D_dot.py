@@ -16,13 +16,14 @@ w.setCameraPosition(distance=20)
 g = gl.GLGridItem()
 w.addItem(g)
 
-pos = [0,0,0]
 size = 20
 color = (0.0, 1.0, 0.0, 0.5)
+pos = np.array([10,10,10])
 
-
-sp1 = gl.GLScatterPlotItem(pos=pos, size=size, color = color, pxMode=True)
+#pxMode True and t.start below (400) producing some funny point at the origin
+sp1 = gl.GLScatterPlotItem(pos=pos, size=size, color = color, pxMode = True)
 w.addItem(sp1)
+
 
 axisitem = gl.GLAxisItem()
 w.addItem(axisitem)
@@ -31,15 +32,16 @@ def updateData():
     xd =1*np.random.random()
     yd =1*np.random.random()
     zd =1*np.random.random()
-    pos=[xd, yd, zd]
-    print(pos)
-    sp1.setData(pos=pos)
+    new_pos = np.array([xd,yd,zd])
+    print(new_pos)
+    sp1.setData(pos=new_pos)
 
 ## Start a timer to rapidly update the plot in spw
 t = QtCore.QTimer()
 t.timeout.connect(updateData)
-t.start(50)
+t.start(400)
 
 
 if __name__ == '__main__':
     pg.exec()
+    print("see ya")
