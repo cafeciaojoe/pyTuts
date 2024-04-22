@@ -20,21 +20,23 @@ size = 50
 color = (0.0, 1.0, 0.0, 0.5)
 
 #pxMode True producing some funny points at the origin, especially if you immediateley move the camera after the window opens
-sp1 = gl.GLScatterPlotItem(size=size, color = color, pxMode=True)
-w.addItem(sp1)
+#sp1 = gl.GLScatterPlotItem(size=size, color = color, pxMode=True)
+#w.addItem(sp1)
+
+md = gl.MeshData.sphere(rows=4, cols=8, radius=.1)
+m4 = gl.GLMeshItem(meshdata=md, smooth=False, drawFaces=False, drawEdges=True, edgeColor=(1, 1, 1, 1))
+w.addItem(m4)
 
 axisitem = gl.GLAxisItem()
 w.addItem(axisitem)
 
 def updateData(pos_dict):
-    pos=pos_dict.get("marker")
-    print('1',pos)
-    sp1.setData(pos=pos)
+    pos_d=pos_dict.get("marker")
+    print(pos_d)
 
-## Start a timer to rapidly update the plot in spw
-# t = QtCore.QTimer()
-# t.timeout.connect(updateData)
-# t.start(50)
+    m4.translate(pos_d[0], pos_d[1], pos_d[2])
+    # sp1.setData(pos=pos)
+
 
 class DataSource(QtCore.QObject):
     """Object representing a complex data producer."""
@@ -66,10 +68,27 @@ class DataSource(QtCore.QObject):
         QtCore.QTimer.singleShot(0,self.run_data_creation)
 
     def _update_marker_data(self, count):
-        self._marker_data[0] = np.random.random()
-        self._marker_data[1] = np.random.random()
-        self._marker_data[2] = np.random.random()
-        print('0',self._marker_data)
+        xp = 1 * np.random.random()
+        yp = 1 * np.random.random()
+        zp = 1 * np.random.random()
+        new_pos = np.array([xp, yp, zp])
+        #print(new_pos)
+
+        current_pos_4x4 = pg.transformToArray(m4.transform())
+        # print(current_pos_4x4)
+        # print(current_pos_4x4[(1,3)])
+        xc = current_pos_4x4[(0, 3)]
+        yc = current_pos_4x4[(1, 3)]
+        zc = current_pos_4x4[(2, 3)]
+        current_pos = np.array([xc, yc, zc])
+        print('current_pos', current_pos)
+
+        pos_d = np.subtract(new_pos, current_pos)
+
+        self._marker_data[0] = pos_d[0]
+        self._marker_data[1] = pos_d[1]
+        self._marker_data[2] = pos_d[2]
+
         return self._marker_data.copy()
 
     def stop_data(self):

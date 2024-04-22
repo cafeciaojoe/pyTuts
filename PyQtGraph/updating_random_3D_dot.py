@@ -24,7 +24,6 @@ pos = np.array([10,10,10])
 sp1 = gl.GLScatterPlotItem(pos=pos, size=size, color = color, pxMode = True)
 w.addItem(sp1)
 
-
 axisitem = gl.GLAxisItem()
 w.addItem(axisitem)
 
@@ -39,7 +38,7 @@ def updateData():
 ## Start a timer to rapidly update the plot in spw
 t = QtCore.QTimer()
 t.timeout.connect(updateData)
-t.start(400)
+t.start(40)
 
 
 if __name__ == '__main__':
