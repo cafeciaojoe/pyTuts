@@ -10,3 +10,7 @@ a = np.array([1, 2, 3, 4, 5, 6])
 "in your array, you’ll be accessing element “0”."
 print(a[0])
 print(a[0:3])
+
+b = np.empty((6,3))
+
+print(b)

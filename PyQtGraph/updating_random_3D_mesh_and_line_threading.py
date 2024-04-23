@@ -18,9 +18,15 @@ w.addItem(g)
 
 md = gl.MeshData.sphere(rows=4, cols=8, radius=.1)
 
-
 m1 = gl.GLMeshItem(meshdata=md, smooth=False, drawFaces=False, drawEdges=True, edgeColor=(1, 1, 1, 1))
 w.addItem(m1)
+
+m2 = gl.GLMeshItem(meshdata=md, smooth=False, drawFaces=False, drawEdges=True, edgeColor=(0, 1, 0, .5))
+w.addItem(m2)
+
+
+l12 = gl.GLLinePlotItem()
+w.addItem(l12)
 
 axisitem = gl.GLAxisItem()
 w.addItem(axisitem)
@@ -28,8 +34,9 @@ w.addItem(axisitem)
 def updateData(pos_dict):
     pos_d=pos_dict.get("marker")
     print(pos_d)
-
+    l12.setData(pos=np.array([[0, 0, 0], [pos_d[0], pos_d[1], pos_d[2]]]))
     m1.translate(pos_d[0], pos_d[1], pos_d[2])
+
     # sp1.setData(pos=pos)
 
 
@@ -43,6 +50,7 @@ class DataSource(QtCore.QObject):
         self._should_end = False
         self._count = 0
         self._num_iters = num_iterations
+        #todo make arraay here.
         self._marker_data = [0,0,0]
 
 

@@ -25,18 +25,29 @@ pos = np.array([10,10,10])
 #w.addItem(sp1)
 
 
-md = gl.MeshData.sphere(rows=4, cols=8, radius=.1)
-m4 = gl.GLMeshItem(meshdata=md, smooth=False, drawFaces=False, drawEdges=True, edgeColor=(1, 1, 1, 1))
+md = gl.MeshData.sphere(rows=10, cols=20, radius=.1)
+# colors = np.random.random(size=(md.faceCount(), 4))
+# colors[:,3] = 0.3
+# colors[100:] = 0.0
+colors = np.ones((md.faceCount(), 4), dtype=float)
+colors[::2, 0] = 0
+colors[:, 1] = np.linspace(0, 1, colors.shape[0])
+md.setFaceColors(colors)
+m4 = gl.GLMeshItem(meshdata=md, smooth=False)  # , shader='balloon')
+
 w.addItem(m4)
 
+# md = gl.MeshData.sphere(rows=4, cols=8, radius=.1)
+# m4 = gl.GLMeshItem(meshdata=md, smooth=False, drawFaces=False, drawEdges=True, edgeColor=(1, 1, 1, 1))
+# w.addItem(m4)
 
 axisitem = gl.GLAxisItem()
 w.addItem(axisitem)
 
 def updateData():
-    xp =1*np.random.random()
-    yp =1*np.random.random()
-    zp =1*np.random.random()
+    xp = 1
+    yp = 0
+    zp = 0
     new_pos = np.array([xp,yp,zp])
     print(new_pos)
 
@@ -55,11 +66,13 @@ def updateData():
     pos_d = np.subtract(new_pos,current_pos)
 
     m4.translate(pos_d[0],pos_d[1],pos_d[2])
+    #not exatly sure how local works here.
+    m4.rotate(10,1,1,1)
 
 ## Start a timer to rapidly update the plot in spw
 t = QtCore.QTimer()
 t.timeout.connect(updateData)
-t.start(40)
+t.start(100)
 
 
 if __name__ == '__main__':
