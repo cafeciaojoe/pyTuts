@@ -51,7 +51,7 @@ class DataSource(QtCore.QObject):
         self._count = 0
         self._num_iters = num_iterations
         #todo make arraay here.
-        self._marker_data = [0,0,0]
+        self._marker_data = np.empty((6,3))
 
 
     def run_data_creation(self):
@@ -71,6 +71,12 @@ class DataSource(QtCore.QObject):
         QtCore.QTimer.singleShot(0,self.run_data_creation)
 
     def _update_marker_data(self, count):
+
+
+
+        return self._marker_data.copy()
+
+    def _update_marker_data_old(self, count):
         xp = 1 * np.random.random()
         yp = 1 * np.random.random()
         zp = 1 * np.random.random()
