@@ -9,8 +9,8 @@ from cflib.crazyflie.syncLogger import SyncLogger
 
 # URI to the Crazyflie to connect to
 uri = 'radio://0/80/2M/A0A0A0A0A9'
-
 latest_cf_sensor_data = False
+
 
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
@@ -18,18 +18,24 @@ logging.basicConfig(level=logging.ERROR)
 def log_stab_callback(timestamp, data, logconf):
     #print('[%d][%s]: %s' % (timestamp, logconf.name, data))
     global latest_cf_sensor_data
-    latest_cf_sensor_data = data   
-    print(timestamp)
+    latest_cf_sensor_data = data
+    """adding the timestam to the latest sensor data dict"""
+    latest_cf_sensor_data['timestamp'] = timestamp
+    #print(timestamp)
 
 def simple_log_async(scf, logconf):
     cf = scf.cf
     cf.log.add_config(logconf)
     logconf.data_received_cb.add_callback(log_stab_callback)
     logconf.start()
-    print('started')
+    print('logconf_started')
+    last_timestamp = 0
     while True:
         if latest_cf_sensor_data is not False:
-            print(latest_cf_sensor_data['stateEstimate.x'])
+            if last_timestamp < latest_cf_sensor_data['timestamp']:
+                #print(latest_cf_sensor_data['timestamp'])
+                
+                last_timestamp = latest_cf_sensor_data['timestamp']
     logconf.stop()
 
 if __name__ == '__main__':
@@ -46,5 +52,5 @@ if __name__ == '__main__':
     lg_stab.add_variable('stateEstimate.yaw', 'float')
 
     with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
-        #with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
-        simple_log_async(scf, lg_stab)
+        with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf_2:
+            simple_log_async(scf, lg_stab, scf_2)
