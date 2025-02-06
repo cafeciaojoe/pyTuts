@@ -20,6 +20,39 @@ def make_uri_dict():
         print(key)
 
 
+def log_async(scf):
+    lg_vars = {
+        'stateEstimate.x': 'float',
+        'stateEstimate.y': 'float',
+        'stateEstimate.z': 'float',
+        'stateEstimate.roll': 'float',
+        'stateEstimate.pitch': 'float',
+        'stateEstimate.yaw': 'float',
+    }
+
+    lg_stab = LogConfig(name='Position', period_in_ms=100)
+    for key in lg_vars:
+        lg_stab.add_variable(key, lg_vars[key])
+
+    start_callback(scf, lg_stab)
+    for i in range(0,100):
+        print('doing stuff, one for each drone',i)
+        time.sleep(1)
+
+def start_callback(scf, logconf):
+    cf = scf.cf
+    cf.log.add_config(logconf)
+    logconf.data_received_cb.add_callback(log_stab_callback)
+    logconf.start()
+    # for i in range(0,100):
+    #     print('doing stuff, one for each drone',i)
+    #     time.sleep(1)
+    logconf.stop()
+
+def log_stab_callback(timestamp, data, logconf):
+    print('[%d][%s]: %s' % (timestamp, logconf.name, data))
+
+
 
 def log_sync(scf):
     lg_vars = {
@@ -51,15 +84,9 @@ def log_sync(scf):
 
 
 if __name__ == '__main__':
-    make_uri_dict()
-    student = {'name': 0}
-    print(student)
-    exit()
     cflib.crtp.init_drivers(enable_debug_driver=False) # initialize drivers
     factory = CachedCfFactory(rw_cache='./cache')
 
-    #make_ur_mesh_dict()
-
-
     with Swarm(uris, factory=factory) as swarm:
-        swarm.parallel(log_sync)
+        swarm.parallel(log_async)
+        print('now i am here')

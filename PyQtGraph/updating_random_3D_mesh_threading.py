@@ -16,8 +16,7 @@ w.setCameraPosition(distance=20)
 g = gl.GLGridItem()
 w.addItem(g)
 
-md = gl.MeshData.sphere(rows=4, cols=8, radius=.1)
-
+md = gl.MeshData.sphere(rows=8, cols=8, radius=.1)
 
 m1 = gl.GLMeshItem(meshdata=md, smooth=False, drawFaces=False, drawEdges=True, edgeColor=(1, 1, 1, 1))
 w.addItem(m1)
@@ -96,7 +95,6 @@ if __name__ == '__main__':
     data_thread = QtCore.QThread(parent=w)
     data_source = DataSource()
     data_source.moveToThread(data_thread)
-
     # update the visualization when there is new data
     data_source.new_data.connect(updateData)
     # start data generation when the thread is started
@@ -104,12 +102,10 @@ if __name__ == '__main__':
     # if the data source finishes before the window is closed, kill the thread
     # to clean up resources
     data_source.finished.connect(data_thread.quit)
-
     # when the thread has ended, delete the data source from memory
     data_thread.finished.connect(data_source.deleteLater)
 
     data_thread.start()
-
     pg.exec()
 
     # if the window is closed, tell the data source to stop

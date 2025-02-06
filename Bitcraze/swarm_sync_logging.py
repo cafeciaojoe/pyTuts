@@ -45,10 +45,10 @@ def log_sync(scf):
             #print(log_entry)
             print(f'{uri}, {timestamp}, {data}')
             # Do your stuff here
+            # call the function that updates the dictionary and sends the dictionary to the graph
 
             if time.time() > endTime:
                 break
-
 
 if __name__ == '__main__':
     make_uri_dict()

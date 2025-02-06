@@ -42,3 +42,5 @@ print(emp_2.email)
 
 """what about a variable that is defined inside a class? aka instance variable? 
 see next py file. """
+
+

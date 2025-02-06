@@ -35,6 +35,6 @@ if __name__ == '__main__':
         #swarm.parallel_safe(light_check)
         #swarm.reset_estimators()
         dict = swarm.get_estimated_positions()
-        pos = dict['radio://0/80/2M/E7E7E7E704']
+        pos = dict['radio://0/80/2M/E7E7E7E704'].x
         print((pos))
 
