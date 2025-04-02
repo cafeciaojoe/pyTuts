@@ -8,8 +8,9 @@ from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.crazyflie.syncLogger import SyncLogger
 
 # URIs to the Crazyflie to connect to
-uri = 'radio://0/80/2M/A0A0A0A0A9'
-uri_2 = 'radio://0/80/2M/A0A0A0A0AC'
+# uri_2 is the dorne following URI_1 which is the sensor 
+uri = 'radio://0/80/2M/A0A0A0A0A8'
+uri_2 = 'radio://0/90/2M/A0A0A0A0AA'
 latest_cf_sensor_data = False
 
 # Only output errors from the logging framework
@@ -68,13 +69,16 @@ def log_stab_callback(timestamp, data, logconf):
     #print('[%d][%s]: %s' % (timestamp, logconf.name, data))
     global latest_cf_sensor_data
     latest_cf_sensor_data = data
-    """adding the timestam to the latest sensor data dict"""
+    """adding the timestamp to the latest sensor data dict"""
     latest_cf_sensor_data['timestamp'] = timestamp
     #print(timestamp)
 
 def send_drone(scf, x, y, z, yaw):
         cf = scf.cf
+        " note that the commander takes inputs as floats.cf"
+        " note that launching the drone and giving it a yaw command is to much and it will often crash"
         cf.commander.send_position_setpoint(x,y,z,yaw)
+        print(x,y,z,yaw)
         time.sleep(0.1)
 
         #cf.commander.send_stop_setpoint()
@@ -93,17 +97,25 @@ def simple_log_async(scf,scf_2,logconf):
     logconf.start()
     print('logconf_started')
     last_timestamp = 0
-    while True:
+    while latest_cf_sensor_data is False:
         if latest_cf_sensor_data is not False:
-            if last_timestamp < latest_cf_sensor_data['timestamp']:
-                print(latest_cf_sensor_data['timestamp'])
-                #send_drone(scf_2,0,0,0.5,0)
-                """IMPORTANT add or subtract the right buffer to avoid sending the drone directly into the sensor"""
-                send_drone(scf_2,latest_cf_sensor_data['stateEstimate.x'],
-                           latest_cf_sensor_data['stateEstimate.y']+1,
-                           latest_cf_sensor_data['stateEstimate.z'],
-                           latest_cf_sensor_data['stateEstimate.yaw'])
-                last_timestamp = latest_cf_sensor_data['timestamp']
+            break
+    while latest_cf_sensor_data is not False:
+        if last_timestamp < latest_cf_sensor_data['timestamp']:
+            #print(latest_cf_sensor_data['timestamp'])
+            #send_drone(scf_2,0,0,0.5,0)
+            """IMPORTANT add or subtract the right buffer to avoid sending the drone directly into the sensor"""
+            """send_drone takes floats """
+            send_drone(scf_2,latest_cf_sensor_data['stateEstimate.x'],
+                        (latest_cf_sensor_data['stateEstimate.y']+1.5),
+                        latest_cf_sensor_data['stateEstimate.z'],
+                        latest_cf_sensor_data['stateEstimate.yaw'])
+            last_timestamp = latest_cf_sensor_data['timestamp']
+            # send_drone(scf_2,latest_cf_sensor_data['stateEstimate.x'],
+            #            (latest_cf_sensor_data['stateEstimate.y']+1.5),
+            #            latest_cf_sensor_data['stateEstimate.z'],
+            #            latest_cf_sensor_data['stateEstimate.yaw'])
+            # last_timestamp = latest_cf_sensor_data['timestamp']
     logconf.stop()
 
     
@@ -111,7 +123,7 @@ if __name__ == '__main__':
     # Initialize the low-level drivers
     cflib.crtp.init_drivers()
 
-    log_state_est = LogConfig(name='stateEstimate', period_in_ms=10)
+    log_state_est = LogConfig(name='stateEstimate', period_in_ms=1000)
     log_state_est.add_variable('stateEstimate.x', 'float')
     log_state_est.add_variable('stateEstimate.y', 'float')
     log_state_est.add_variable('stateEstimate.z', 'float')
@@ -125,3 +137,7 @@ if __name__ == '__main__':
             reset_estimator(scf)
             reset_estimator(scf_2)
             simple_log_async(scf, scf_2, log_state_est)
+    
+    print(type(scf))
+    print(type(scf_2))
+        
