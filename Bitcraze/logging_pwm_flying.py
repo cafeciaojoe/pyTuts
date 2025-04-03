@@ -10,7 +10,6 @@ from cflib.crazyflie.syncLogger import SyncLogger
 from cflib.utils.reset_estimator import reset_estimator
 
 # URI to the Crazyflie to connect to
-uri_sensor = 'radio://0/90/2M/A0A0A0A0A8' #sensor
 uri_drone = 'radio://0/90/2M/A0A0A0A0AA' #drone
 
 # Only output errors from the logging framework
