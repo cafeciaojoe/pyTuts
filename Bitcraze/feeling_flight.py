@@ -95,13 +95,13 @@ def run_sequence(scf_s, scf_d, sequence):
 
     for position in sequence:
         print('Setting position {}'.format(position))
-        for i in range(5):
+        for i in range(50):
             cf_d.commander.send_position_setpoint(position[0],
                                                 position[1],
                                                 position[2],
                                                 position[3])
             change_param(scf_s, 'motorPowerSet', 'm1', m1_pwm/2)
-            time.sleep(1)
+            time.sleep(.1)
 
     change_param(scf_s, 'motorPowerSet', 'm1', 0)
 
