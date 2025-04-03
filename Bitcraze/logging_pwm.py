@@ -36,3 +36,4 @@ if __name__ == '__main__':
   
     with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
         simple_log_async(scf, log_conf)
+        
