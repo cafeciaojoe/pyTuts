@@ -77,7 +77,7 @@ def send_drone(scf, x, y, z, yaw):
         cf = scf.cf
         " note that the commander takes inputs as floats.cf"
         " note that launching the drone and giving it a yaw command is to much and it will often crash"
-        cf.commander.send_position_setpoint(x,y,z,yaw)
+        cf.commander.send_position_setpoint(x,y,z,0.0)
         print(x,y,z,yaw)
         time.sleep(0.1)
 
@@ -107,15 +107,16 @@ def simple_log_async(scf,scf_2,logconf):
             """IMPORTANT add or subtract the right buffer to avoid sending the drone directly into the sensor"""
             """send_drone takes floats """
             send_drone(scf_2,latest_cf_sensor_data['stateEstimate.x'],
-                        (latest_cf_sensor_data['stateEstimate.y']+1.5),
+                        (latest_cf_sensor_data['stateEstimate.y']+2.0),
                         latest_cf_sensor_data['stateEstimate.z'],
                         latest_cf_sensor_data['stateEstimate.yaw'])
-            last_timestamp = latest_cf_sensor_data['timestamp']
+
             # send_drone(scf_2,latest_cf_sensor_data['stateEstimate.x'],
             #            (latest_cf_sensor_data['stateEstimate.y']+1.5),
             #            latest_cf_sensor_data['stateEstimate.z'],
             #            latest_cf_sensor_data['stateEstimate.yaw'])
-            # last_timestamp = latest_cf_sensor_data['timestamp']
+
+            last_timestamp = latest_cf_sensor_data['timestamp']
     logconf.stop()
 
     
@@ -123,8 +124,10 @@ if __name__ == '__main__':
     # Initialize the low-level drivers
     cflib.crtp.init_drivers()
 
+    "This is a log config, a list of variables selected from a table of contents (TOC) on the crazyflie,"
+    "we will send this list to each crazyflie, it will send back the values every x milliseconds (period_in_ms)"
     log_state_est = LogConfig(name='stateEstimate', period_in_ms=1000)
-    log_state_est.add_variable('stateEstimate.x', 'float')
+    log_state_est.add_variable('stayteEstimate.x', 'float')
     log_state_est.add_variable('stateEstimate.y', 'float')
     log_state_est.add_variable('stateEstimate.z', 'float')
 
