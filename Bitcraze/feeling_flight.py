@@ -6,6 +6,7 @@ from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.log import LogConfig
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.crazyflie.syncLogger import SyncLogger
+from cflib.positioning.position_hl_commander import PositionHlCommander
 
 from cflib.utils.reset_estimator import reset_estimator
 
@@ -80,8 +81,20 @@ def start_position_printing(scf):
     log_conf.data_received_cb.add_callback(position_callback)
     log_conf.start()
 
+def run_sequence(scf_s, scf_d):
+    cf_d = scf_d.cf
 
-def run_sequence(scf_s, scf_d, sequence):
+    # Arm the Crazyflie
+    cf_d.platform.send_arming_request(True)
+    time.sleep(1.0)
+
+    with PositionHlCommander(scf_d, controller=PositionHlCommander.CONTROLLER_PID) as pc:
+        pc.forward(1.0)
+        pc.left(1.0)
+        pc.back(1.0)
+        pc.go_to(0.0, 0.0, 1.0)
+
+def run_sequence_old(scf_s, scf_d, sequence):
     cf_d = scf_d.cf
 
     # Arm the Crazyflie
@@ -117,10 +130,13 @@ def run_sequence(scf_s, scf_d, sequence):
 
 def log_callback(timestamp, data, logconf):
     #print('[%d][%s]: %s' % (timestamp, logconf.name, data))
-    global m1_pwm  # Declare m1_pwm as global to modify it
+    #global m1_pwm  # Declare m1_pwm as global to modify it
     if 'motor.m1' in data:
-        m1_pwm = data['motor.m1']
-        print(f'm1_pwm updated to: {m1_pwm}')
+        #print(data['motor.m1'])
+        change_param(scf_s, 'motorPowerSet', 'm1', data['motor.m1'])
+    #     #m1_pwm = data['motor.m1']
+    #     time.sleep(param_set_interval)
+
     
 
 def start_log_async(scf, logconf):
@@ -136,7 +152,7 @@ if __name__ == '__main__':
     # Initialize the low-level drivers
     cflib.crtp.init_drivers()
 
-    log_conf = LogConfig(name='motor', period_in_ms=1000)
+    log_conf = LogConfig(name='motor', period_in_ms=50)
     log_conf.add_variable('motor.m1', 'uint16_t')
     log_conf.add_variable('motor.m2', 'uint16_t')
     log_conf.add_variable('motor.m3', 'uint16_t')
@@ -157,5 +173,5 @@ if __name__ == '__main__':
             reset_estimator(scf_d)
             start_log_async(scf_d, log_conf)
             #start_position_printing(scf)
-            run_sequence(scf_s, scf_d, sequence)
+            run_sequence(scf_s, scf_d)
 
