@@ -51,36 +51,6 @@ def change_param(scf, groupstr, namestr, value):
     cf.param.set_value(full_name, value)
     time.sleep(param_set_interval)
 
-def take_off(cf, position):
-    take_off_time = 1.0
-    sleep_time = 0.1
-    steps = int(take_off_time / sleep_time)
-    vz = position[2] / take_off_time
-
-    print(f'take off at {position[2]}')
-
-    for i in range(steps):
-        cf.commander.send_velocity_world_setpoint(0, 0, vz, 0)
-        time.sleep(sleep_time)
-
-
-def position_callback(timestamp, data, logconf):
-    x = data['kalman.stateX']
-    y = data['kalman.stateY']
-    z = data['kalman.stateZ']
-    print('pos: ({}, {}, {})'.format(x, y, z))
-
-
-def start_position_printing(scf):
-    log_conf = LogConfig(name='Position', period_in_ms=500)
-    log_conf.add_variable('kalman.stateX', 'float')
-    log_conf.add_variable('kalman.stateY', 'float')
-    log_conf.add_variable('kalman.stateZ', 'float')
-
-    scf.cf.log.add_config(log_conf)
-    log_conf.data_received_cb.add_callback(position_callback)
-    log_conf.start()
-
 def run_sequence(scf_s, scf_d):
     cf_d = scf_d.cf
 
@@ -94,28 +64,6 @@ def run_sequence(scf_s, scf_d):
         pc.back(1.0)
         pc.go_to(0.0, 0.0, 1.0)
 
-def run_sequence_old(scf_s, scf_d, sequence):
-    cf_d = scf_d.cf
-
-    # Arm the Crazyflie
-    cf_d.platform.send_arming_request(True)
-    time.sleep(1.0)
-
-    take_off(cf_d, sequence[0])
-    time.sleep(1.0)
-
-    global m1_pwm
-
-    for position in sequence:
-        print('Setting position {}'.format(position))
-        for i in range(50):
-            cf_d.commander.send_position_setpoint(position[0],
-                                                position[1],
-                                                position[2],
-                                                position[3])
-            change_param(scf_s, 'motorPowerSet', 'm1', m1_pwm/2)
-            time.sleep(.1)
-
     change_param(scf_s, 'motorPowerSet', 'm1', 0)
 
     cf_d.commander.send_stop_setpoint()
@@ -127,17 +75,41 @@ def run_sequence_old(scf_s, scf_d, sequence):
     # since the message queue is not flushed before closing
     time.sleep(0.1)
 
-
 def log_callback(timestamp, data, logconf):
-    #print('[%d][%s]: %s' % (timestamp, logconf.name, data))
-    #global m1_pwm  # Declare m1_pwm as global to modify it
-    if 'motor.m1' in data:
-        #print(data['motor.m1'])
-        change_param(scf_s, 'motorPowerSet', 'm1', data['motor.m1'])
-    #     #m1_pwm = data['motor.m1']
-    #     time.sleep(param_set_interval)
+    def amplify_and_clamp(value, factor, max_value):
+        amplified = value * factor
+        return max(0, min(int(amplified), max_value))
 
-    
+    scaling_factor = 1.1  # Adjust this factor to amplify the variance
+    # TODO maybe a logarythmic adjustment to this data?
+    max_uint16 = 65535
+
+    if 'motor.m1' in data:
+        amplified_value = amplify_and_clamp(data['motor.m1'], scaling_factor, max_uint16)
+        change_param(scf_s, 'motorPowerSet', 'm1', amplified_value)
+    if 'motor.m2' in data:
+        amplified_value = amplify_and_clamp(data['motor.m2'], scaling_factor, max_uint16)
+        change_param(scf_s, 'motorPowerSet', 'm2', amplified_value)
+    if 'motor.m3' in data:
+        amplified_value = amplify_and_clamp(data['motor.m3'], scaling_factor, max_uint16)
+        change_param(scf_s, 'motorPowerSet', 'm3', amplified_value)
+    if 'motor.m4' in data:
+        amplified_value = amplify_and_clamp(data['motor.m4'], scaling_factor, max_uint16)
+        change_param(scf_s, 'motorPowerSet', 'm4', amplified_value)
+
+    #print('[%d][%s]: %s' % (timestamp, logconf.name, data))
+    # if 'motor.m1' in data:
+    #     #print(data['motor.m1'])
+    #     change_param(scf_s, 'motorPowerSet', 'm1', data['motor.m1'])
+    # if 'motor.m2' in data:
+    #     #print(data['motor.m1'])
+    #     change_param(scf_s, 'motorPowerSet', 'm2', data['motor.m2'])
+    # if 'motor.m3' in data:
+    #     #print(data['motor.m1'])
+    #     change_param(scf_s, 'motorPowerSet', 'm3', data['motor.m3'])
+    # if 'motor.m4' in data:
+    #     #print(data['motor.m1'])
+    #     change_param(scf_s, 'motorPowerSet', 'm4', data['motor.m4'])
 
 def start_log_async(scf, logconf):
     cf = scf.cf
@@ -147,12 +119,11 @@ def start_log_async(scf, logconf):
     time.sleep(3)
     #logconf.stop()
 
-    
 if __name__ == '__main__':
     # Initialize the low-level drivers
     cflib.crtp.init_drivers()
 
-    log_conf = LogConfig(name='motor', period_in_ms=50)
+    log_conf = LogConfig(name='motor', period_in_ms=200)
     log_conf.add_variable('motor.m1', 'uint16_t')
     log_conf.add_variable('motor.m2', 'uint16_t')
     log_conf.add_variable('motor.m3', 'uint16_t')
@@ -160,18 +131,29 @@ if __name__ == '__main__':
 
     with SyncCrazyflie(uri_sensor, cf=Crazyflie(rw_cache='./cache')) as scf_s:
         create_param_callback(scf_s, 'motorPowerSet', 'enable')
-        time.sleep(2)
+        time.sleep(1)
         change_param(scf_s, 'motorPowerSet', 'enable', 1)
-        time.sleep(2)
+        time.sleep(1)
         create_param_callback(scf_s, 'motorPowerSet', 'm1')
-        time.sleep(2)
+        time.sleep(1)
+        create_param_callback(scf_s, 'motorPowerSet', 'm2')
+        time.sleep(1)
+        create_param_callback(scf_s, 'motorPowerSet', 'm3')
+        time.sleep(1)
+        create_param_callback(scf_s, 'motorPowerSet', 'm4')
+        time.sleep(1)
         change_param(scf_s, 'motorPowerSet', 'm1', 20000)
-        time.sleep(2)
+        time.sleep(1)
         change_param(scf_s, 'motorPowerSet', 'm1', 0)
-        time.sleep(2)
+        time.sleep(1)
         with SyncCrazyflie(uri_drone, cf=Crazyflie(rw_cache='./cache')) as scf_d:
             reset_estimator(scf_d)
             start_log_async(scf_d, log_conf)
             #start_position_printing(scf)
             run_sequence(scf_s, scf_d)
+            change_param(scf_s, 'motorPowerSet', 'm1', 0)
+            change_param(scf_s, 'motorPowerSet', 'm2', 0)
+            change_param(scf_s, 'motorPowerSet', 'm3', 0)
+            change_param(scf_s, 'motorPowerSet', 'm4', 0)
+
 
