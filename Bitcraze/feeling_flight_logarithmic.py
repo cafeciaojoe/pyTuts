@@ -1,5 +1,6 @@
 import logging
 import time
+import math
 
 import cflib.crtp
 from cflib.crazyflie import Crazyflie
@@ -22,6 +23,7 @@ uri_sensor = 'radio://0/80/2M/A0A0A0A0A8'
 logging.basicConfig(level=logging.ERROR)
 
 param_set_interval = .01
+# 0 to 65535 for min and max value. 
 m1_pwm = False
 
 # Change the sequence according to your setup
@@ -62,7 +64,6 @@ def run_sequence(scf_s, scf_d):
     cf_d.platform.send_arming_request(True)
     time.sleep(1.0)
 
-    # https://www.bitcraze.io/documentation/repository/crazyflie-lib-python/master/api/cflib/positioning/position_hl_commander/
     with PositionHlCommander(scf_d, controller=PositionHlCommander.CONTROLLER_PID) as pc:
         pc.forward(1.0)
         pc.left(1.0)
@@ -81,26 +82,28 @@ def run_sequence(scf_s, scf_d):
     time.sleep(0.1)
 
 def log_callback(timestamp, data, logconf):
-    def amplify_and_clamp(value, factor, max_value):
-        amplified = value * factor
-        return max(0, min(int(amplified), max_value))
+    def logarithmic_scale(value, max_value):
+        # Normalize the value to the range [0, 1]
+        normalized = value / max_value
+        # Apply logarithmic scaling
+        scaled = math.log1p(normalized * 9) / math.log1p(10)  # Logarithmic base scaling
+        # Re-normalize to the range [0, max_value]
+        return int(scaled * max_value)
 
-    scaling_factor = 1.1  # Adjust this factor to amplify the variance
-    # TODO maybe a logarythmic adjustment to this data?
     max_uint16 = 65535
 
     if 'motor.m1' in data:
-        amplified_value = amplify_and_clamp(data['motor.m1'], scaling_factor, max_uint16)
-        change_param(scf_s, 'motorPowerSet', 'm1', amplified_value)
+        scaled_value = logarithmic_scale(data['motor.m1'], max_uint16)
+        change_param(scf_s, 'motorPowerSet', 'm1', scaled_value)
     if 'motor.m2' in data:
-        amplified_value = amplify_and_clamp(data['motor.m2'], scaling_factor, max_uint16)
-        change_param(scf_s, 'motorPowerSet', 'm2', amplified_value)
+        scaled_value = logarithmic_scale(data['motor.m2'], max_uint16)
+        change_param(scf_s, 'motorPowerSet', 'm2', scaled_value)
     if 'motor.m3' in data:
-        amplified_value = amplify_and_clamp(data['motor.m3'], scaling_factor, max_uint16)
-        change_param(scf_s, 'motorPowerSet', 'm3', amplified_value)
+        scaled_value = logarithmic_scale(data['motor.m3'], max_uint16)
+        change_param(scf_s, 'motorPowerSet', 'm3', scaled_value)
     if 'motor.m4' in data:
-        amplified_value = amplify_and_clamp(data['motor.m4'], scaling_factor, max_uint16)
-        change_param(scf_s, 'motorPowerSet', 'm4', amplified_value)
+        scaled_value = logarithmic_scale(data['motor.m4'], max_uint16)
+        change_param(scf_s, 'motorPowerSet', 'm4', scaled_value)
 
     #print('[%d][%s]: %s' % (timestamp, logconf.name, data))
     # if 'motor.m1' in data:
