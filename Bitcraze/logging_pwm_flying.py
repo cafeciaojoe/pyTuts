@@ -9,6 +9,8 @@ from cflib.crazyflie.syncLogger import SyncLogger
 
 from cflib.utils.reset_estimator import reset_estimator
 
+from cflib.positioning.position_hl_commander import PositionHlCommander
+
 # URI to the Crazyflie to connect to
 uri_drone = 'radio://0/90/2M/A0A0A0A0AA' #drone
 
@@ -27,7 +29,6 @@ sequence = [
     (0.0, 0.0, 1.2, 0),
     (0.0, 0.0, 0.4, 0),
 ]
-
 
 def take_off(cf, position):
     take_off_time = 1.0
@@ -67,17 +68,26 @@ def run_sequence(scf, sequence):
     cf.platform.send_arming_request(True)
     time.sleep(1.0)
 
-    take_off(cf, sequence[0])
-    time.sleep(1.0)
+    # take_off(cf, sequence[0])
+    # time.sleep(1.0)
+    # for position in sequence:
+    #     print('Setting position {}'.format(position))
+    #     for i in range(25):
+    #         cf.commander.send_position_setpoint(position[0],
+    #                                             position[1],
+    #                                             position[2],
+    #                                             position[3])
+    #         time.sleep(0.1)
 
-    for position in sequence:
-        print('Setting position {}'.format(position))
-        for i in range(50):
-            cf.commander.send_position_setpoint(position[0],
-                                                position[1],
-                                                position[2],
-                                                position[3])
-            time.sleep(0.1)
+    with PositionHlCommander(cf, controller=PositionHlCommander.CONTROLLER_PID, default_velocity=1.0) as pc:
+        pc.go_to(0.0, 0.0, 0.4)
+        pc.go_to(0.0, 0.0, 1.2)
+        pc.go_to(0.5, -0.5, 1.2)
+        pc.go_to(0.5, 0.5, 1.2)
+        pc.go_to(-0.5, 0.5, 1.2)
+        pc.go_to(-0.5, -0.5, 1.2)
+        pc.go_to(0.0, 0.0, 1.2)
+        pc.go_to(0.0, 0.0, 0.4)
 
     cf.commander.send_stop_setpoint()
     # Hand control over to the high level commander to avoid timeout and locking of the Crazyflie

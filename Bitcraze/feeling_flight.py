@@ -15,8 +15,8 @@ from cflib.utils.reset_estimator import reset_estimator
 # uri_sensor = 'radio://0/80/2M/A0A0A0A0A8'
 
 # URI to the Crazyflie to connect to
-uri_drone = 'radio://0/80/2M/E7E7E7E7E0' #drone
-uri_sensor = 'radio://0/80/2M/A0A0A0A0A8'
+uri_drone = 'radio://0/90/2M/A0A0A0A0AA' #drone
+uri_sensor = 'radio://0/80/2M/E7E7E7E7E8'
 
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
@@ -63,11 +63,29 @@ def run_sequence(scf_s, scf_d):
     time.sleep(1.0)
 
     # https://www.bitcraze.io/documentation/repository/crazyflie-lib-python/master/api/cflib/positioning/position_hl_commander/
-    with PositionHlCommander(scf_d, controller=PositionHlCommander.CONTROLLER_PID) as pc:
-        pc.forward(1.0)
-        pc.left(1.0)
-        pc.back(1.0)
-        pc.go_to(0.0, 0.0, 1.0)
+    with PositionHlCommander(scf_d, controller=PositionHlCommander.CONTROLLER_PID, default_velocity=2) as pc:
+        pc.go_to(0.0, 0.0, 0.4)
+        pc.go_to(0.0, 0.0, 1.2)
+        pc.go_to(0.5, -0.5, 1.2)
+        pc.go_to(0.5, 0.5, 1.2)
+        pc.go_to(-0.5, 0.5, 1.2)
+        pc.go_to(-0.5, -0.5, 1.2)
+        pc.go_to(0.0, 0.0, 1.2)
+        pc.go_to(0.0, 0.0, 0.4)
+        # for position in sequence:
+        #     print('Setting position {}'.format(position))
+        #     for i in range(25):
+        #         cf_d.commander.send_position_setpoint(position[0],
+        #                                             position[1],
+        #                                             position[2],
+        #                                             position[3])
+        #         time.sleep(0.1)
+        
+        # for _ in range(30):
+        #     # Continuously send the zero setpoint until the drone is recognized as landed
+        #     # to prevent the supervisor from intervening due to missing regular setpoints
+        #     cf_d.commander.send_setpoint(0, 0, 0, 0)
+        #     time.sleep(0.1)
 
     change_param(scf_s, 'motorPowerSet', 'm1', 0)
 
