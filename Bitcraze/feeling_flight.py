@@ -15,8 +15,8 @@ from cflib.utils.reset_estimator import reset_estimator
 # uri_sensor = 'radio://0/80/2M/A0A0A0A0A8'
 
 # URI to the Crazyflie to connect to
-uri_drone = 'radio://0/90/2M/A0A0A0A0AA' #drone
-uri_sensor = 'radio://0/80/2M/E7E7E7E7E8'
+uri_sensor = 'radio://0/90/2M/A0A0A0A0AA' 
+uri_drone = 'radio://0/80/2M/E7E7E7E7E8'
 
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
@@ -63,7 +63,7 @@ def run_sequence(scf_s, scf_d):
     time.sleep(1.0)
 
     # https://www.bitcraze.io/documentation/repository/crazyflie-lib-python/master/api/cflib/positioning/position_hl_commander/
-    with PositionHlCommander(scf_d, controller=PositionHlCommander.CONTROLLER_PID, default_velocity=2) as pc:
+    with PositionHlCommander(scf_d, controller=PositionHlCommander.CONTROLLER_PID, default_velocity=1) as pc:
         pc.go_to(0.0, 0.0, 0.4)
         pc.go_to(0.0, 0.0, 1.2)
         pc.go_to(0.5, -0.5, 1.2)
@@ -99,40 +99,19 @@ def run_sequence(scf_s, scf_d):
     time.sleep(0.1)
 
 def log_callback(timestamp, data, logconf):
-    def amplify_and_clamp(value, factor, max_value):
-        amplified = value * factor
-        return max(0, min(int(amplified), max_value))
-
-    scaling_factor = 1.1  # Adjust this factor to amplify the variance
-    # TODO maybe a logarythmic adjustment to this data?
-    max_uint16 = 65535
-
+    print('[%d][%s]: %s' % (timestamp, logconf.name, data))
     if 'motor.m1' in data:
-        amplified_value = amplify_and_clamp(data['motor.m1'], scaling_factor, max_uint16)
-        change_param(scf_s, 'motorPowerSet', 'm1', amplified_value)
+        #print(data['motor.m1'])
+        change_param(scf_s, 'motorPowerSet', 'm1', data['motor.m1'])
     if 'motor.m2' in data:
-        amplified_value = amplify_and_clamp(data['motor.m2'], scaling_factor, max_uint16)
-        change_param(scf_s, 'motorPowerSet', 'm2', amplified_value)
+        #print(data['motor.m1'])
+        change_param(scf_s, 'motorPowerSet', 'm2', data['motor.m2'])
     if 'motor.m3' in data:
-        amplified_value = amplify_and_clamp(data['motor.m3'], scaling_factor, max_uint16)
-        change_param(scf_s, 'motorPowerSet', 'm3', amplified_value)
+        #print(data['motor.m1'])
+        change_param(scf_s, 'motorPowerSet', 'm3', data['motor.m3'])
     if 'motor.m4' in data:
-        amplified_value = amplify_and_clamp(data['motor.m4'], scaling_factor, max_uint16)
-        change_param(scf_s, 'motorPowerSet', 'm4', amplified_value)
-
-    #print('[%d][%s]: %s' % (timestamp, logconf.name, data))
-    # if 'motor.m1' in data:
-    #     #print(data['motor.m1'])
-    #     change_param(scf_s, 'motorPowerSet', 'm1', data['motor.m1'])
-    # if 'motor.m2' in data:
-    #     #print(data['motor.m1'])
-    #     change_param(scf_s, 'motorPowerSet', 'm2', data['motor.m2'])
-    # if 'motor.m3' in data:
-    #     #print(data['motor.m1'])
-    #     change_param(scf_s, 'motorPowerSet', 'm3', data['motor.m3'])
-    # if 'motor.m4' in data:
-    #     #print(data['motor.m1'])
-    #     change_param(scf_s, 'motorPowerSet', 'm4', data['motor.m4'])
+        #print(data['motor.m1'])
+        change_param(scf_s, 'motorPowerSet', 'm4', data['motor.m4'])
 
 def start_log_async(scf, logconf):
     cf = scf.cf

@@ -1,6 +1,5 @@
 import logging
 import time
-import math
 
 import cflib.crtp
 from cflib.crazyflie import Crazyflie
@@ -16,14 +15,13 @@ from cflib.utils.reset_estimator import reset_estimator
 # uri_sensor = 'radio://0/80/2M/A0A0A0A0A8'
 
 # URI to the Crazyflie to connect to
-uri_drone = 'radio://0/80/2M/E7E7E7E7E0' #drone
-uri_sensor = 'radio://0/80/2M/A0A0A0A0A8'
+uri_drone = 'radio://0/90/2M/A0A0A0A0AA' 
+uri_sensor = 'radio://0/80/2M/E7E7E7E7E8'
 
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
 
 param_set_interval = .01
-# 0 to 65535 for min and max value. 
 m1_pwm = False
 
 # Change the sequence according to your setup
@@ -64,60 +62,70 @@ def run_sequence(scf_s, scf_d):
     cf_d.platform.send_arming_request(True)
     time.sleep(1.0)
 
-    with PositionHlCommander(scf_d, controller=PositionHlCommander.CONTROLLER_PID) as pc:
-        pc.forward(1.0)
-        pc.left(1.0)
-        pc.back(1.0)
-        pc.go_to(0.0, 0.0, 1.0)
+    # https://www.bitcraze.io/documentation/repository/crazyflie-lib-python/master/api/cflib/positioning/position_hl_commander/
+    with PositionHlCommander(scf_d, controller=PositionHlCommander.CONTROLLER_PID, default_velocity=.5) as pc:
+        pc.go_to(0.0, 0.0, 0.4)
+        pc.go_to(0.0, 0.0, 1.2)
+        pc.go_to(0.5, -0.5, 1.2)
+        pc.go_to(0.5, 0.5, 1.2)
+        pc.go_to(-0.5, 0.5, 1.2)
+        pc.go_to(-0.5, -0.5, 1.2)
+        pc.go_to(0.0, 0.0, 1.2)
+        pc.go_to(0.0, 0.0, 0.4)
+        # for position in sequence:
+        #     print('Setting position {}'.format(position))
+        #     for i in range(25):
+        #         cf_d.commander.send_position_setpoint(position[0],
+        #                                             position[1],
+        #                                             position[2],
+        #                                             position[3])
+        #         time.sleep(0.1)
+        
+        # for _ in range(30):
+        #     # Continuously send the zero setpoint until the drone is recognized as landed
+        #     # to prevent the supervisor from intervening due to missing regular setpoints
+        #     cf_d.commander.send_setpoint(0, 0, 0, 0)
+        #     time.sleep(0.1)
 
-    change_param(scf_s, 'motorPowerSet', 'm1', 0)
+        change_param(scf_s, 'motorPowerSet', 'm1', 0)
+        change_param(scf_s, 'motorPowerSet', 'm2', 0)
+        change_param(scf_s, 'motorPowerSet', 'm3', 0)
+        change_param(scf_s, 'motorPowerSet', 'm4', 0)
 
     cf_d.commander.send_stop_setpoint()
     # Hand control over to the high level commander to avoid timeout and locking of the Crazyflie
     cf_d.commander.send_notify_setpoint_stop()
 
-
     # Make sure that the last packet leaves before the link is closed
     # since the message queue is not flushed before closing
     time.sleep(0.1)
 
+def amplify_and_send_motors(scf_s, m_values, center=32768, amplification_factor=1.0, power=1, idle_threshold=1000):
+    avg = sum(m_values) / 4.0
+    if avg < idle_threshold:
+        # Drone is not flying, set all motors to zero
+        amplified = [0, 0, 0, 0]
+    else:
+        amplified = []
+        for m in m_values:
+            diff = m - avg
+            # Amplify difference (optionally non-linear)
+            amp = center + amplification_factor * (diff ** power if diff >= 0 else -((-diff) ** power))
+            # Clamp to valid PWM range
+            amp = max(0, min(65535, int(amp)))
+            amplified.append(amp)
+    # Send to sensor
+    change_param(scf_s, 'motorPowerSet', 'm1', amplified[0])
+    change_param(scf_s, 'motorPowerSet', 'm2', amplified[1])
+    change_param(scf_s, 'motorPowerSet', 'm3', amplified[2])
+    change_param(scf_s, 'motorPowerSet', 'm4', amplified[3])
+
+# Then, update your log_callback:
 def log_callback(timestamp, data, logconf):
-    def logarithmic_scale(value, max_value):
-        # Normalize the value to the range [0, 1]
-        normalized = value / max_value
-        # Apply logarithmic scaling
-        scaled = math.log1p(normalized * 9) / math.log1p(10)  # Logarithmic base scaling
-        # Re-normalize to the range [0, max_value]
-        return int(scaled * max_value)
-
-    max_uint16 = 65535
-
-    if 'motor.m1' in data:
-        scaled_value = logarithmic_scale(data['motor.m1'], max_uint16)
-        change_param(scf_s, 'motorPowerSet', 'm1', scaled_value)
-    if 'motor.m2' in data:
-        scaled_value = logarithmic_scale(data['motor.m2'], max_uint16)
-        change_param(scf_s, 'motorPowerSet', 'm2', scaled_value)
-    if 'motor.m3' in data:
-        scaled_value = logarithmic_scale(data['motor.m3'], max_uint16)
-        change_param(scf_s, 'motorPowerSet', 'm3', scaled_value)
-    if 'motor.m4' in data:
-        scaled_value = logarithmic_scale(data['motor.m4'], max_uint16)
-        change_param(scf_s, 'motorPowerSet', 'm4', scaled_value)
-
-    #print('[%d][%s]: %s' % (timestamp, logconf.name, data))
-    # if 'motor.m1' in data:
-    #     #print(data['motor.m1'])
-    #     change_param(scf_s, 'motorPowerSet', 'm1', data['motor.m1'])
-    # if 'motor.m2' in data:
-    #     #print(data['motor.m1'])
-    #     change_param(scf_s, 'motorPowerSet', 'm2', data['motor.m2'])
-    # if 'motor.m3' in data:
-    #     #print(data['motor.m1'])
-    #     change_param(scf_s, 'motorPowerSet', 'm3', data['motor.m3'])
-    # if 'motor.m4' in data:
-    #     #print(data['motor.m1'])
-    #     change_param(scf_s, 'motorPowerSet', 'm4', data['motor.m4'])
+    m_keys = ['motor.m1', 'motor.m2', 'motor.m3', 'motor.m4']
+    if all(k in data for k in m_keys):
+        m_values = [data[k] for k in m_keys]
+        amplify_and_send_motors(scf_s, m_values, center=32768, amplification_factor=12.0, power=1)
 
 def start_log_async(scf, logconf):
     cf = scf.cf
@@ -159,9 +167,7 @@ if __name__ == '__main__':
             start_log_async(scf_d, log_conf)
             #start_position_printing(scf)
             run_sequence(scf_s, scf_d)
-            change_param(scf_s, 'motorPowerSet', 'm1', 0)
-            change_param(scf_s, 'motorPowerSet', 'm2', 0)
-            change_param(scf_s, 'motorPowerSet', 'm3', 0)
-            change_param(scf_s, 'motorPowerSet', 'm4', 0)
+            time.sleep(1)
+
 
 
